@@ -19,7 +19,7 @@ fun main() {
 
 }
 
-fun countXmas(array: PrimitiveMultiDimArray<Char>): Int {
+private fun countXmas(array: PrimitiveMultiDimArray<Char>): Int {
     var sum = 0
     for (j in 0 until array.getDimensionSize(0)) {
         for (i in 0 until array.getDimensionSize(1)) {
@@ -32,7 +32,7 @@ fun countXmas(array: PrimitiveMultiDimArray<Char>): Int {
     return sum
 }
 
-fun countMasX(array: PrimitiveMultiDimArray<Char>): Int {
+private fun countMasX(array: PrimitiveMultiDimArray<Char>): Int {
     var sum = 0
     for (j in 0 until array.getDimensionSize(0)) {
         for (i in 0 until array.getDimensionSize(1)) {
@@ -45,7 +45,55 @@ fun countMasX(array: PrimitiveMultiDimArray<Char>): Int {
     return sum
 }
 
-fun checkMasX(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int {
+private fun checkXmas(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int {
+    var sum = 0
+    val value = array[j, i]
+    if (value != 'X') {
+        return 0
+    }
+
+    // right
+    sum += checkSingle(array, j, i, 0, 1)
+    // left
+    sum += checkSingle(array, j, i, 0, -1)
+    // down
+    sum += checkSingle(array, j, i, 1, 0)
+    // up
+    sum += checkSingle(array, j, i, -1 ,0)
+    // down right
+    sum += checkSingle(array, j, i, 1,1)
+    // up right
+    sum += checkSingle(array, j, i,-1,1)
+    // down left
+    sum += checkSingle(array, j, i,1,-1)
+    // up left
+    sum += checkSingle(array, j, i, -1,-1)
+
+    return sum
+}
+
+private fun checkSingle(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int, moveY: Int, moveX: Int): Int {
+    val height = array.getDimensionSize(0)
+    val width = array.getDimensionSize(1)
+    val checkWord = "XMAS"
+    var word = ""
+    var x = i
+    var y = j
+
+    var moved = 0
+    while (y in 0 ..<height && x in 0..<width && moved <= 3) {
+        word += array[y, x]
+        y += moveY
+        x += moveX
+        moved += 1
+    }
+    if (word == checkWord) {
+        return 1
+    }
+    return 0
+}
+
+private fun checkMasX(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int {
     val height = array.getDimensionSize(0)
     val width = array.getDimensionSize(1)
     val checkWord = "MAS"
@@ -67,127 +115,7 @@ fun checkMasX(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int {
     return 0
 }
 
-fun checkXmas(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int {
-    val height = array.getDimensionSize(0)
-    val width = array.getDimensionSize(1)
-    val checkWord = "XMAS"
-    var sum = 0
-    val value = array[j, i]
-    if (value != 'X') {
-        return 0
-    }
-
-    // read right
-    var word = ""
-    for (x in i..i + 3) {
-        if (x >= width) {
-            break
-        }
-        word += array[j, x]
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-
-    // read left
-    for (x in i downTo i - 3) {
-        if (x < 0) {
-            break
-        }
-        word += array[j, x]
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-
-    // read down
-    for (y in j..j + 3) {
-        if (y >= height) {
-            break
-        }
-        word += array[y, i]
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-
-    // read up
-    for (y in j downTo j - 3) {
-        if (y < 0) {
-            break
-        }
-        word += array[y, i]
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-
-    // diagonals
-    var y = j
-    for (x in i..i + 3) {
-        if (x >= width || y >= height) {
-            break
-        }
-        word += array[y, x]
-        y += 1
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-    y = j
-    for (x in i downTo i - 3) {
-        if (x < 0 || y >= height) {
-            break
-        }
-        word += array[y, x]
-        y += 1
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-    y = j
-
-    for (x in i downTo i - 3) {
-        if (x < 0 || y < 0) {
-            break
-        }
-        word += array[y, x]
-        y -= 1
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    word = ""
-    y = j
-
-    for (x in i..i + 3) {
-        if (x >= width || y < 0) {
-            break
-        }
-        word += array[y, x]
-        y -= 1
-    }
-    if (word == checkWord) {
-        sum += 1
-    }
-
-    return sum
-}
-
-fun readInput(input: List<String>): PrimitiveMultiDimArray<Char> {
+private fun readInput(input: List<String>): PrimitiveMultiDimArray<Char> {
     val dim = input[0].length // I don't care about any exception here ... if empty -> bad luck
     val out: PrimitiveMultiDimArray<Char> = PrimitiveMultiDimArray(dim, dim) { size -> PrimitiveCharArray(size) }
     var j = 0
