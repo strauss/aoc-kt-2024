@@ -1,6 +1,8 @@
-class MultiDimArray<T>(private vararg val dimension: Int, oneDimConstructor: (Int) -> Array<T>) {
+import de.dreamcube.hornet_queen.array.PrimitiveArray
 
-    private val internalArray: Array<T>
+class PrimitiveMultiDimArray<T>(private vararg val dimension: Int, oneDimConstructor: (Int) -> PrimitiveArray<T>) {
+
+    private val internalArray: PrimitiveArray<T>
 
     init {
         // check validity
@@ -35,8 +37,18 @@ class MultiDimArray<T>(private vararg val dimension: Int, oneDimConstructor: (In
         return oneDimIndex
     }
 
+    /**
+     * Retrieve the size of the specified dimension. Counting starts at 0
+     */
+    fun getDimensionSize(dimensionIndex: Int): Int {
+        if(dimensionIndex > dimension.size) {
+            throw ArrayIndexOutOfBoundsException("$dimensionIndex exceeds max dimension index of this array: ${dimension.size - 1}")
+        }
+        return dimension[dimensionIndex]
+    }
+
     override fun toString(): String {
-        return internalArray.contentToString()
+        return internalArray.toString()
     }
 
     operator fun iterator() = internalArray.iterator()
