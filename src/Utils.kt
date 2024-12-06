@@ -1,3 +1,4 @@
+import de.dreamcube.hornet_queen.array.PrimitiveCharArray
 import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.io.path.Path
@@ -19,3 +20,16 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
  * The cleaner shorthand for printing output.
  */
 fun Any?.println() = println(this)
+
+fun parseInputAsMultiDimArray(input: List<String>): PrimitiveMultiDimArray<Char> {
+    val dim = input[0].length // I don't care about any exception here ... if empty -> bad luck
+    val out: PrimitiveMultiDimArray<Char> = PrimitiveMultiDimArray(dim, dim) { size -> PrimitiveCharArray(size) }
+    var j = 0
+    input.forEach { line ->
+        for (i in line.indices) {
+            out[j, i] = line[i]
+        }
+        j += 1
+    }
+    return out
+}
