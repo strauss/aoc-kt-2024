@@ -1,16 +1,14 @@
-import de.dreamcube.hornet_queen.array.PrimitiveCharArray
-
 fun main() {
     val testList = readInput("Day04_test")
     val inputList = readInput("Day04")
 
-    val exInput = readInput(testList)
+    val exInput = parseInputAsMultiDimArray(testList)
     val exResult = countXmas(exInput)
     println("Example result: $exResult")
     val exResult2 = countMasX(exInput)
     println("Example result2: $exResult2")
 
-    val input = readInput(inputList)
+    val input = parseInputAsMultiDimArray(inputList)
     val result = countXmas(input)
     println("Result: $result")
     val result2 = countMasX(input)
@@ -59,15 +57,15 @@ private fun checkXmas(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int 
     // down
     sum += checkSingle(array, j, i, 1, 0)
     // up
-    sum += checkSingle(array, j, i, -1 ,0)
+    sum += checkSingle(array, j, i, -1, 0)
     // down right
-    sum += checkSingle(array, j, i, 1,1)
+    sum += checkSingle(array, j, i, 1, 1)
     // up right
-    sum += checkSingle(array, j, i,-1,1)
+    sum += checkSingle(array, j, i, -1, 1)
     // down left
-    sum += checkSingle(array, j, i,1,-1)
+    sum += checkSingle(array, j, i, 1, -1)
     // up left
-    sum += checkSingle(array, j, i, -1,-1)
+    sum += checkSingle(array, j, i, -1, -1)
 
     return sum
 }
@@ -81,7 +79,7 @@ private fun checkSingle(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int, mov
     var y = j
 
     var moved = 0
-    while (y in 0 ..<height && x in 0..<width && moved <= 3) {
+    while (y in 0..<height && x in 0..<width && moved <= 3) {
         word += array[y, x]
         y += moveY
         x += moveX
@@ -113,17 +111,4 @@ private fun checkMasX(array: PrimitiveMultiDimArray<Char>, j: Int, i: Int): Int 
         return 1
     }
     return 0
-}
-
-private fun readInput(input: List<String>): PrimitiveMultiDimArray<Char> {
-    val dim = input[0].length // I don't care about any exception here ... if empty -> bad luck
-    val out: PrimitiveMultiDimArray<Char> = PrimitiveMultiDimArray(dim, dim) { size -> PrimitiveCharArray(size) }
-    var j = 0
-    input.forEach { line ->
-        for (i in line.indices) {
-            out[j, i] = line[i]
-        }
-        j += 1
-    }
-    return out
 }
