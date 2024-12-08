@@ -1,6 +1,12 @@
+package aoc_2024
+
+import aoc_util.PrimitiveMultiDimArray
+import aoc_util.parseInputAsMultiDimArray
+import aoc_util.readInput2024
+
 fun main() {
-    val testList = readInput("Day04_test")
-    val inputList = readInput("Day04")
+    val testList = readInput2024("Day04_test")
+    val inputList = readInput2024("Day04")
 
     val exInput = parseInputAsMultiDimArray(testList)
     val exResult = countXmas(exInput)

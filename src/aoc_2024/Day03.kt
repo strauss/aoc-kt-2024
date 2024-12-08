@@ -1,15 +1,19 @@
+package aoc_2024
+
+import aoc_util.readInput2024
+
 private val part1Regex = "mul\\((\\d+),(\\d+)\\)".toRegex()
 private val part2Regex = "(do\\(\\))|(don't\\(\\))|(mul\\((\\d+),(\\d+)\\))".toRegex()
 
 fun main() {
-    val testResultPart1 = part1(readInput("Day03_test_01"))
+    val testResultPart1 = part1(readInput2024("Day03_test_01"))
     println("Test result part 1: $testResultPart1")
-    val testResultPart2 = part2(readInput("Day03_test_02"))
+    val testResultPart2 = part2(readInput2024("Day03_test_02"))
     println("Test result part 2: $testResultPart2")
 
     println()
 
-    val input = readInput("Day03")
+    val input = readInput2024("Day03")
     val resultPart1 = part1(input)
     println("Result part 1: $resultPart1")
     val resultPart2 = part2(input)

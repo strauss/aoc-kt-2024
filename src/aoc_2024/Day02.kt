@@ -1,8 +1,11 @@
+package aoc_2024
+
+import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import kotlin.math.abs
 
 fun main() {
-    val exampleList: List<List<Int>> = parseInput(readInput("Day02_test"))
+    val exampleList: List<List<Int>> = parseInput(readInput2024("Day02_test"))
     exampleList[2].isSafeWithTolerance()
 
     val exampleResult = exampleList.asSequence()
@@ -15,7 +18,7 @@ fun main() {
         .count()
     println("Example Result with tolerance: $exampleResultWithTolerance")
 
-    val inputList = parseInput(readInput("Day02"))
+    val inputList = parseInput(readInput2024("Day02"))
     val result = inputList.asSequence()
         .filter { it.isSafe() }
         .count()

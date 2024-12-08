@@ -1,3 +1,5 @@
+package aoc_util
+
 /**
  * This class is perfectly suited for solving riddles. It takes an [iterable] as input. It generates all possible combinations of length [depth] for
  * the given input [iterable]. If [distinct] is set to true, it will avoid duplicates resulting in the creation of permutations of the input
