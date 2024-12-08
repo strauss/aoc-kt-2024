@@ -1,16 +1,20 @@
+package aoc_2024
+
+import aoc_util.CombinatorialIterator
+import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.list.PrimitiveLongArrayList
 
 fun main() {
     val operators1 = listOf('+', '*')
     val operators2 = listOf('+', '*', '|')
-    val testList = readInput("Day07_test")
+    val testList = readInput2024("Day07_test")
     val testInput = parseInput(testList)
     val testResult = solve(testInput, operators1)
     println("Test result 1: $testResult")
     val testResult2 = solve(testInput, operators2)
     println("Test result 2: $testResult2")
 
-    val realList = readInput("Day07")
+    val realList = readInput2024("Day07")
     val input = parseInput(realList)
     val result = solve(input, operators1)
     println("Real result: $result")

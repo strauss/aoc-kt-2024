@@ -1,3 +1,5 @@
+package aoc_util
+
 import de.dreamcube.hornet_queen.array.PrimitiveArray
 
 class PrimitiveMultiDimArray<T>(private vararg val dimension: Int, oneDimConstructor: (Int) -> PrimitiveArray<T>) {
@@ -41,7 +43,7 @@ class PrimitiveMultiDimArray<T>(private vararg val dimension: Int, oneDimConstru
      * Retrieve the size of the specified dimension. Counting starts at 0
      */
     fun getDimensionSize(dimensionIndex: Int): Int {
-        if(dimensionIndex > dimension.size) {
+        if (dimensionIndex > dimension.size) {
             throw ArrayIndexOutOfBoundsException("$dimensionIndex exceeds max dimension index of this array: ${dimension.size - 1}")
         }
         return dimension[dimensionIndex]

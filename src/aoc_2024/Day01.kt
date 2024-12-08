@@ -1,15 +1,19 @@
+package aoc_2024
+
+import aoc_util.println
+import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import kotlin.math.abs
 
 fun main() {
-    val testInput = readInput("Day01_test")
+    val testInput = readInput2024("Day01_test")
     println("Test results")
     part1(testInput).println()
     part2(testInput).println()
     println()
 
-    val input = readInput("Day01")
+    val input = readInput2024("Day01")
     println("Results")
     part1(input).println()
     part2(input).println()

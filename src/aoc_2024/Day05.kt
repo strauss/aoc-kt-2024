@@ -1,15 +1,18 @@
+package aoc_2024
+
+import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 import java.util.*
 
 fun main() {
-    val testList = readInput("Day05_test")
+    val testList = readInput2024("Day05_test")
     val (testRules, testSamples) = parseInput(testList)
     val testResult = part1(testRules, testSamples)
     println("Test result: $testResult")
 
-    val realList = readInput("Day05")
+    val realList = readInput2024("Day05")
     val (rules, samples) = parseInput(realList)
     val result = part1(rules, samples)
     println("Real result: $result")

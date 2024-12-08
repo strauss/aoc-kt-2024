@@ -1,11 +1,17 @@
+package aoc_2024
+
+import aoc_util.PrimitiveMultiDimArray
+import aoc_util.parseInputAsMultiDimArray
+import aoc_util.readInput2024
+
 fun main() {
-    val testInputList = readInput("Day06_test")
+    val testInputList = readInput2024("Day06_test")
     val testInput = parseInputAsMultiDimArray(testInputList)
     println(part1(testInput))
     println(part2(testInput))
 
 
-    val inputList = readInput("Day06")
+    val inputList = readInput2024("Day06")
     val input = parseInputAsMultiDimArray(inputList)
     println(part1(input))
     println(part2(input))

@@ -1,13 +1,17 @@
+package aoc_util
+
 import de.dreamcube.hornet_queen.array.PrimitiveCharArray
 import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.io.path.Path
 import kotlin.io.path.readText
 
+fun readInput2024(name: String) = internalReadInput(name, 2024)
+
 /**
  * Reads lines from the given input txt file.
  */
-fun readInput(name: String) = Path("src/$name.txt").readText().trim().lines()
+private fun internalReadInput(name: String, year: Int) = Path("aoc/$year/$name.txt").readText().trim().lines()
 
 /**
  * Converts string to md5 hash.
