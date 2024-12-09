@@ -14,7 +14,7 @@ fun main() {
     val realList = readInput2024("Day09")
     val realInput = parseInput(realList)
     val realResult = solve1(realInput)
-    val realResult2 = 0 // solve2(realInput)
+    val realResult2 = solve2(realInput)
     println("Real result 1: $realResult")
     println("Real result 2: $realResult2")
 
@@ -22,14 +22,14 @@ fun main() {
 
 private const val FREE: Int = -1
 
-fun solve1(input: List<Int>): Long {
+private fun solve1(input: List<Int>): Long {
     val blockList = createBlockList(input)
     defragBlocks(blockList)
     val result = checksum(blockList)
     return result
 }
 
-fun solve2(input: List<Int>): Long {
+private fun solve2(input: List<Int>): Long {
     val blockList = createBlockList(input)
     defragFiles(blockList)
     val result = checksum(blockList)
@@ -48,50 +48,84 @@ private fun checksum(input: List<Int>): Long {
 }
 
 private fun defragFiles(input: MutableList<Int>) {
-    var lastFilled = input.lastIndex
-    while (input[lastFilled] == FREE) {
-        lastFilled -= 1
+    val clusterList = createClusterList(input)
+    for(i in clusterList.lastIndex downTo 0) {
+        defragOneEntry(clusterList, i, input)
     }
-    var currentFile = input[lastFilled]
-//    val movedFiles: MutableSet<Int> = PrimitiveIntSetB()
-//    movedFiles.add(0)
-    while (currentFile > 0) {
-        val fileSize = getFileSize(input, lastFilled)
-        var firstFree = 0
-        var fileMoved = false
-        inner@ while (firstFree < input.size) {
-            while (input[firstFree] != FREE) {
-                firstFree += 1
+    println(clusterList.size)
+}
+
+private fun defragOneEntry(
+    clusterList: List<FileSegment>,
+    i: Int,
+    input: MutableList<Int>
+) {
+    val (id, startIndex, length) = clusterList[i]
+    val freeList = createFreeList(input)
+    for ((freeIndex, freeLength) in freeList) {
+        if (freeIndex < startIndex && freeLength >= length) {
+            for (j in freeIndex..<freeIndex + length) {
+                input[j] = id
             }
-            val freeSize = getFreeSize(input, firstFree)
-            if (fileSize <= freeSize) {
-//                movedFiles.add(input[lastFilled])
-                for (i in 0..<fileSize) {
-                    input[firstFree] = input[lastFilled]
-                    input[lastFilled] = FREE
-                    firstFree += 1
-                    lastFilled -= 1
-                }
-                while (input[firstFree] != FREE) {
-                    firstFree += 1
-                }
-                fileMoved = true
-                break@inner
-            } else {
-                firstFree += 1
-                while (firstFree < input.size && input[firstFree] != FREE) {
-                    firstFree += 1
-                }
+            for (j in startIndex..<startIndex + length) {
+                input[j] = FREE
             }
-        }
-        currentFile -= 1
-        while (
-//            lastFilled >= 0 &&
-            input[lastFilled] != currentFile) {// && movedFiles.contains(input[lastFilled])) {
-            lastFilled -= 1
+            break
         }
     }
 }
+
+private fun createFreeList(input: MutableList<Int>): List<Pair<Int, Int>> {
+    val freeList: MutableList<Pair<Int, Int>> = ArrayList()
+    var currentLength = 0
+    for(i in 0..<input.lastIndex) {
+        val element = input[i]
+        if(element == FREE) {
+            currentLength++
+        } else {
+            if(currentLength > 0) {
+                freeList.add(Pair(i - currentLength, currentLength))
+            }
+            currentLength = 0
+        }
+    }
+    return freeList
+}
+
+private fun createClusterList(input: MutableList<Int>): MutableList<FileSegment> {
+    var currentCluster = 0
+    var currentLength = 0
+    val clusterList = ArrayList<FileSegment>()
+    for (i in 0..input.lastIndex) {
+        val element = input[i]
+        if (element == FREE) {
+            if (currentCluster != FREE) {
+                clusterList.add(FileSegment(currentCluster, i - currentLength, currentLength))
+            }
+            currentLength = 0
+            currentCluster = FREE
+            continue
+        }
+        if (element == currentCluster) {
+            currentLength += 1
+        } else {
+            if (currentCluster == FREE) {
+                currentCluster = element
+                currentLength = 1
+                continue
+            }
+            clusterList.add(FileSegment(currentCluster, i - currentLength, currentLength))
+            currentCluster = element
+            currentLength = 1
+        }
+    }
+    if (input[input.lastIndex] != FREE) {
+        clusterList.add(FileSegment(currentCluster, input.lastIndex - currentLength + 1, currentLength))
+    }
+    return clusterList
+}
+
+private data class FileSegment(val id: Int, val startIndex: Int, val length: Int)
 
 private fun getFreeSize(input: List<Int>, index: Int): Int {
     var i = 0
@@ -157,4 +191,50 @@ private fun parseInput(input: List<String>): List<Int> {
         }
     }
     return outList
+}
+
+private fun defragFilesWtf(input: MutableList<Int>) {
+    var lastFilled = input.lastIndex
+    while (input[lastFilled] == FREE) {
+        lastFilled -= 1
+    }
+    var currentFile = input[lastFilled]
+//    val movedFiles: MutableSet<Int> = PrimitiveIntSetB()
+//    movedFiles.add(0)
+    while (currentFile > 0) {
+        val fileSize = getFileSize(input, lastFilled)
+        var firstFree = 0
+        var fileMoved = false
+        inner@ while (firstFree < input.size) {
+            while (input[firstFree] != FREE) {
+                firstFree += 1
+            }
+            val freeSize = getFreeSize(input, firstFree)
+            if (fileSize <= freeSize) {
+//                movedFiles.add(input[lastFilled])
+                for (i in 0..<fileSize) {
+                    input[firstFree] = input[lastFilled]
+                    input[lastFilled] = FREE
+                    firstFree += 1
+                    lastFilled -= 1
+                }
+                while (input[firstFree] != FREE) {
+                    firstFree += 1
+                }
+                fileMoved = true
+                break@inner
+            } else {
+                firstFree += 1
+                while (firstFree < input.size && input[firstFree] != FREE) {
+                    firstFree += 1
+                }
+            }
+        }
+        currentFile -= 1
+        while (
+//            lastFilled >= 0 &&
+            input[lastFilled] != currentFile) {// && movedFiles.contains(input[lastFilled])) {
+            lastFilled -= 1
+        }
+    }
 }
