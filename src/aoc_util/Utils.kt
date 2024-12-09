@@ -6,6 +6,8 @@ import java.security.MessageDigest
 import kotlin.io.path.Path
 import kotlin.io.path.readText
 
+fun readInput2023(name: String) = internalReadInput(name, 2023)
+
 fun readInput2024(name: String) = internalReadInput(name, 2024)
 
 /**
