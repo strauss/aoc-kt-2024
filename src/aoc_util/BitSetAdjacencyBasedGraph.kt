@@ -2,6 +2,7 @@ package aoc_util
 
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
+import java.util.*
 
 class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
     private var nextId = 0
@@ -55,6 +56,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
         }
     }
 
+    fun disconnect(edge: Edge) = edge.alpha.disconnect(edge.omega)
+
     fun V.disconnect(vertex: V) {
         val vertexId = this.getId()
         val otherVertexId = vertex.getId()
@@ -68,8 +71,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
 
     fun vertexIterator(): Iterator<V> = vertexToIdMap.keys.iterator()
 
-    fun getEdges(): List<Pair<V, V>> {
-        val edges: MutableList<Pair<V, V>> = ArrayList()
+    fun getEdges(): List<Edge> {
+        val edges: MutableList<Edge> = ArrayList()
         val vertexIterator = vertexIterator()
         while (vertexIterator.hasNext()) {
             val vertex = vertexIterator.next()
@@ -77,7 +80,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
             while (adjacencies.hasNext()) {
                 val adjacency = adjacencies.next()
                 if (directed || adjacency.getId() > vertex.getId()) {
-                    edges.add(Pair(vertex, adjacency))
+                    edges.add(Edge(vertex, adjacency))
                 }
             }
         }
@@ -95,6 +98,145 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
 
     fun V.isConnectedWith(vertex: V): Boolean = idToAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
             (!directed && idToAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
+
+    abstract inner class DfsVisitor() {
+        open fun visitRoot(root: V) {
+            // Default empty implementation
+        }
+
+        open fun leaveRoot(root: V) {
+            // Default empty implementation
+        }
+
+        open fun visitVertex(vertex: V) {
+            // Default empty implementation
+        }
+
+        open fun visitEdge(edge: Edge) {
+            // Default empty implementation
+        }
+
+        open fun visitTreeEdge(edge: Edge) {
+            // Default empty implementation
+        }
+
+        open fun visitFrond(edge: Edge) {
+            // Default empty implementation
+        }
+        // TODO: add further functions
+    }
+
+    fun dfs(visitor: DfsVisitor) {
+        val vertexIterator = vertexIterator()
+        if (!vertexIterator.hasNext()) {
+            return
+        }
+        val entered = PrimitiveIntSetB()
+        val vertexStack = Stack<V>()
+        var root = vertexIterator.next()
+
+        visitor.visitRoot(root)
+        visitor.visitVertex(root)
+
+        entered.add(root.getId())
+        vertexStack.push(root)
+        while (vertexStack.isNotEmpty()) {
+            val currentVertex = vertexStack.pop()
+            currentVertex.adjacencies().forEach { adjacentVertex: V ->
+                val currentEdge = Edge(currentVertex, adjacentVertex)
+
+                visitor.visitEdge(currentEdge)
+
+                if (!entered.contains(adjacentVertex.getId())) {
+                    entered.add(adjacentVertex.getId())
+                    vertexStack.push(adjacentVertex)
+
+                    visitor.visitVertex(adjacentVertex)
+                    visitor.visitTreeEdge(currentEdge)
+                } else {
+                    visitor.visitFrond(currentEdge)
+                }
+            }
+            if (vertexStack.isEmpty()) {
+                // Empty stack = done with current weak component
+                visitor.leaveRoot(root)
+                while (vertexIterator.hasNext()) {
+                    val nextPossibleRoot = vertexIterator.next()
+                    if (!entered.contains(nextPossibleRoot.getId())) {
+                        root = nextPossibleRoot
+
+                        visitor.visitRoot(root)
+
+                        entered.add(root.getId())
+                        vertexStack.push(root)
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    inner class WeakComponentVisitor : BitSetAdjacencyBasedGraph<V>.DfsVisitor() {
+        private val internalResult = ArrayList<MutableList<V>>()
+        val result: List<List<V>>
+            get() = internalResult
+
+        private lateinit var currentInnerList: MutableList<V>
+
+        override fun visitRoot(root: V) {
+            currentInnerList = ArrayList()
+            currentInnerList.add(root)
+        }
+
+        override fun leaveRoot(root: V) {
+            internalResult.add(currentInnerList)
+        }
+
+        override fun visitVertex(vertex: V) {
+            currentInnerList.add(vertex)
+        }
+    }
+
+    /**
+     * Edge representation. In undirected graphs the given [alpha] and [omega] are oriented by their id. The vertex with the lower id is always
+     * [alpha] if the graph is undirected. In directed graphs the given [alpha] and [omega] are set as defined.
+     */
+    inner class Edge(alpha: V, omega: V) {
+        val alpha: V
+        val omega: V
+
+        init {
+            if (directed || alpha.getId() < omega.getId()) {
+                this.alpha = alpha
+                this.omega = omega
+            } else {
+                this.omega = alpha
+                this.alpha = omega
+            }
+        }
+
+        fun disconnect() = alpha.disconnect(omega)
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as BitSetAdjacencyBasedGraph<*>.Edge
+
+            if (alpha != other.alpha) return false
+            if (omega != other.omega) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = alpha?.hashCode() ?: 0
+            result = 31 * result + (omega?.hashCode() ?: 0)
+            return result
+        }
+
+
+    }
 
 }
 
