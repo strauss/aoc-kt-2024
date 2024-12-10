@@ -54,6 +54,8 @@ private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V
         var currentInnerList = ArrayList<V>()
         val vertexStack = Stack<V>()
         val root = vertexIterator.next()
+        // visit root
+        // visit vertex
         entered.add(root.getId())
         currentInnerList.add(root)
         vertexStack.push(root)
@@ -61,10 +63,15 @@ private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V
         while (vertexStack.isNotEmpty()) {
             val currentVertex = vertexStack.pop()
             currentVertex.adjacencies().forEach { adjacentVertex: V ->
+                // visit edge
                 if (!entered.contains(adjacentVertex.getId())) {
                     entered.add(adjacentVertex.getId())
                     currentInnerList.add(adjacentVertex)
                     vertexStack.push(adjacentVertex)
+                    // visit vertex
+                    // visit tree edge
+                } else {
+                    // visit frond
                 }
             }
             if (vertexStack.isEmpty()) {
