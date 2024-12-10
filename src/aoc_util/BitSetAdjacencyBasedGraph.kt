@@ -99,7 +99,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
     fun V.isConnectedWith(vertex: V): Boolean = idToAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
             (!directed && idToAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
 
-    abstract inner class DfsVisitor() {
+    abstract inner class SearchVisitor {
         open fun visitRoot(root: V) {
             // Default empty implementation
         }
@@ -126,22 +126,31 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
         // TODO: add further functions
     }
 
-    fun dfs(visitor: DfsVisitor) {
+    enum class SearchType {
+        DFS, BFS
+    }
+
+    fun search(searchType: SearchType, visitor: SearchVisitor, firstRoot: V?, complete: Boolean = true) {
         val vertexIterator = vertexIterator()
         if (!vertexIterator.hasNext()) {
             return
         }
         val entered = PrimitiveIntSetB()
-        val vertexStack = Stack<V>()
-        var root = vertexIterator.next()
+        val vertexBuffer = LinkedList<V>()
+        var root = firstRoot ?: vertexIterator.next()
 
         visitor.visitRoot(root)
         visitor.visitVertex(root)
 
         entered.add(root.getId())
-        vertexStack.push(root)
-        while (vertexStack.isNotEmpty()) {
-            val currentVertex = vertexStack.pop()
+        vertexBuffer.add(root)
+        while (vertexBuffer.isNotEmpty()) {
+
+            val currentVertex = when (searchType) {
+                SearchType.DFS -> vertexBuffer.removeLast()
+                SearchType.BFS -> vertexBuffer.removeFirst()
+            }
+
             currentVertex.adjacencies().forEach { adjacentVertex: V ->
                 val currentEdge = Edge(currentVertex, adjacentVertex)
 
@@ -149,7 +158,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
 
                 if (!entered.contains(adjacentVertex.getId())) {
                     entered.add(adjacentVertex.getId())
-                    vertexStack.push(adjacentVertex)
+                    vertexBuffer.add(adjacentVertex)
 
                     visitor.visitVertex(adjacentVertex)
                     visitor.visitTreeEdge(currentEdge)
@@ -157,7 +166,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
                     visitor.visitFrond(currentEdge)
                 }
             }
-            if (vertexStack.isEmpty()) {
+            if (vertexBuffer.isEmpty() && complete) {
                 // Empty stack = done with current weak component
                 visitor.leaveRoot(root)
                 while (vertexIterator.hasNext()) {
@@ -168,7 +177,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
                         visitor.visitRoot(root)
 
                         entered.add(root.getId())
-                        vertexStack.push(root)
+                        vertexBuffer.add(root)
                         break
                     }
                 }
@@ -176,7 +185,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
         }
     }
 
-    inner class WeakComponentVisitor : BitSetAdjacencyBasedGraph<V>.DfsVisitor() {
+    inner class WeakComponentVisitor : BitSetAdjacencyBasedGraph<V>.SearchVisitor() {
         private val internalResult = ArrayList<MutableList<V>>()
         val result: List<List<V>>
             get() = internalResult
@@ -235,6 +244,13 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
             return result
         }
 
+        override fun toString(): String {
+            return if (directed) {
+                "($alpha -> $omega)"
+            } else {
+                "($alpha -- $omega)"
+            }
+        }
 
     }
 
