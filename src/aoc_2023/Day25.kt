@@ -13,26 +13,24 @@ fun main() {
     val testResult = bruteForce(testGraph)
     println("Test result: ${testResult[0].size * testResult[1].size}")
 
-    val list = readInput2023("Day25")
-    val graph = parseAdjacencies(list)
-    println("Bruteforcing result for ${graph.getEdges().size}")
-    val result = bruteForce(graph)
-    println("Result: ${result[0].size * result[1].size}")
+//    val list = readInput2023("Day25")
+//    val graph = parseAdjacencies(list)
+//    println("Bruteforcing result for ${graph.getEdges().size}")
+//    val result = bruteForce(graph)
+//    println("Result: ${result[0].size * result[1].size}")
 }
 
 private fun bruteForce(graph: BitSetAdjacencyBasedGraph<String>): List<List<String>> {
     val edges = graph.getEdges()
     val bfIterator = CombinatorialIterator(edges, 3)
     var result: List<List<String>>? = null
-    bfIterator.iterate { currentCandidate: List<Pair<String, String>> ->
+    bfIterator.iterate { currentCandidate: List<BitSetAdjacencyBasedGraph<String>.Edge> ->
         val graphCopy = graph.createCopy()
 
         graphCopy.run {
-            currentCandidate.forEach {
-                it.first.disconnect(it.second)
-            }
+            currentCandidate.forEach { it.disconnect() }
         }
-        val weakComponents = weakComponents(graphCopy)
+        val weakComponents = weakComponents2(graphCopy)
         if (weakComponents.size == 2) {
             result = weakComponents
             return@iterate
@@ -43,6 +41,13 @@ private fun bruteForce(graph: BitSetAdjacencyBasedGraph<String>): List<List<Stri
 
 
 private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V>> {
+    val visitor = graph.WeakComponentVisitor()
+    graph.dfs(visitor)
+    return visitor.result
+}
+
+private fun <V> weakComponents2(graph: BitSetAdjacencyBasedGraph<V>): List<List<V>> {
+
     val resultList = ArrayList<MutableList<V>>()
     // DFS
     graph.run {
@@ -51,13 +56,15 @@ private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V
             return emptyList()
         }
         val entered = PrimitiveIntSetB()
-        var currentInnerList = ArrayList<V>()
         val vertexStack = Stack<V>()
         val root = vertexIterator.next()
+
         // visit root
         // visit vertex
-        entered.add(root.getId())
+        var currentInnerList = ArrayList<V>()
         currentInnerList.add(root)
+
+        entered.add(root.getId())
         vertexStack.push(root)
 
         while (vertexStack.isNotEmpty()) {
@@ -66,9 +73,11 @@ private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V
                 // visit edge
                 if (!entered.contains(adjacentVertex.getId())) {
                     entered.add(adjacentVertex.getId())
-                    currentInnerList.add(adjacentVertex)
                     vertexStack.push(adjacentVertex)
+
                     // visit vertex
+                    currentInnerList.add(adjacentVertex)
+
                     // visit tree edge
                 } else {
                     // visit frond
@@ -76,12 +85,16 @@ private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V
             }
             if (vertexStack.isEmpty()) {
                 // Empty stack = done with current weak component
+                // leaveroot
                 resultList.add(currentInnerList)
                 while (vertexIterator.hasNext()) {
                     val nextPossibleRoot = vertexIterator.next()
                     if (!entered.contains(nextPossibleRoot.getId())) {
+
+                        // visit root
                         currentInnerList = ArrayList<V>()
                         currentInnerList.add(nextPossibleRoot)
+
                         entered.add(nextPossibleRoot.getId())
                         vertexStack.push(nextPossibleRoot)
                         break
