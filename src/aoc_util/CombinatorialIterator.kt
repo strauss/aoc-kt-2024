@@ -11,15 +11,25 @@ class CombinatorialIterator<T>(
     private val distinct: Boolean = false
 ) {
 
+    private var running = false
+
     /**
      * The given function [f] describes, what should happen with each resulting combination. The input list of this function is one combination as
      * list.
      */
     fun iterate(f: (List<T>) -> Unit) {
+        running = true
         internalIterate(emptyList(), f)
     }
 
+    fun stop() {
+        running = false
+    }
+
     private fun internalIterate(items: List<T>, f: (List<T>) -> Unit) {
+        if (!running) {
+            return
+        }
         if (items.size == depth) {
             f.invoke(items)
         } else {
