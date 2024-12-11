@@ -9,49 +9,54 @@ import kotlin.math.min
 fun main() {
     val testList: List<String> = readInput2024("Day11_test")
     val testArray = parseInput(testList)
-    val testBlinks = 7
+    val testBlinks = 25
     val testResult1 = blink(testArray, 0, testBlinks, 1)
     println("Test result 1: ${testResult1.size}")
-    println(testResult1)
+//    println(testResult1)
     println("Test result 1 faster: ${blinkFaster(testArray, testBlinks)}")
 
     val list: List<String> = readInput2024("Day11")
     val array = parseInput(list)
     val result1 = blink(array, 0, 25, 1)
     println("Result 1: ${result1.size}")
-//    val start = System.currentTimeMillis()
-//    val result2 = blinkFaster(array, 40)
-//    println("Result 2: $result2")
-//    val end = System.currentTimeMillis()
-//    println("Time: ${(end - start).toDouble() / 1000.0} seconds")
+    val start = System.currentTimeMillis()
+    val result2 = blinkFaster(array, 75)
+    println("Result 2: $result2")
+    val end = System.currentTimeMillis()
+    println("Time: ${(end - start).toDouble() / 1000.0} seconds")
 }
 
-private fun blinkFaster(input: List<Long>, blinks: Int): Int {
-    val laMap = HashTableBasedMapBuilder.useLongKey().useIntValue().create()
+private fun blinkFaster(input: List<Long>, blinks: Int): Long {
+    val laMap: MutableMap<Long, Long> = HashTableBasedMapBuilder.useLongKey().useLongValue().create()
     for (long in input) {
         laMap[long] = (laMap[long] ?: 0) + 1
     }
-
-    val result = internalBlinkFaster(laMap, 0, blinks)
-    println(result)
-
+    val result: Map<Long, Long> = internalBlinkFaster(laMap, 0, blinks)
     return result.values.sum()
 }
 
-private tailrec fun internalBlinkFaster(input: Map<Long, Int>, currentBlink: Int, blinks: Int): Map<Long, Int> {
+private tailrec fun internalBlinkFaster(input: Map<Long, Long>, currentBlink: Int, blinks: Int): Map<Long, Long> {
     if (currentBlink == blinks) {
         return input
     }
-    val local = HashTableBasedMapBuilder.useLongKey().useIntValue().create()
-    for (key in input.keys) {
-        val localResult = applyRules(key)
-        for (lr in localResult) {
+    val out: MutableMap<Long, Long> = HashTableBasedMapBuilder.useLongKey().useLongValue().create()
+    for ((key: Long, currentKeyCount: Long) in input.entries) {
+        val local: MutableMap<Long, Long> = HashTableBasedMapBuilder.useLongKey().useLongValue().create()
+
+        // results applied to one number of the input. Each number is computed exactly once.
+        val localResult: List<Long> = applyRules(key)
+
+        // count numbers in result
+        for (lr: Long in localResult) {
             local[lr] = (local[lr] ?: 0) + 1
         }
-    }
-    val out = HashTableBasedMapBuilder.useLongKey().useIntValue().create()
-    for (entry in local.entries) {
-        out[entry.key] = entry.value * (input[entry.key] ?: 1)
+
+        for (lr in local.entries) {
+            val currentEntryOutValue = out[lr.key] ?: 0
+            // Magic formula :-)
+            val newEntryOutValue = currentEntryOutValue + lr.value * currentKeyCount
+            out[lr.key] = newEntryOutValue
+        }
     }
     return internalBlinkFaster(out, currentBlink + 1, blinks)
 }
