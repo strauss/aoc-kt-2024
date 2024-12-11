@@ -12,7 +12,6 @@ fun main() {
     val testBlinks = 25
     val testResult1 = blink(testArray, 0, testBlinks, 1)
     println("Test result 1: ${testResult1.size}")
-//    println(testResult1)
     println("Test result 1 faster: ${blinkFaster(testArray, testBlinks)}")
 
     val list: List<String> = readInput2024("Day11")
@@ -85,9 +84,7 @@ private tailrec fun blink(input: List<Long>, currentBlink: Int, blinks: Int, thr
         return input
     }
     val out: MutableList<Long> = LinkedList()
-
-    val actualThreadSize: Int
-    actualThreadSize = if (input.size < 100) 1 else min(threads, 12)
+    val actualThreadSize: Int = if (input.size < 100) 1 else min(threads, 12)
 
     val threadList = ArrayList<PartialSolutionRunner>()
     val chunkSize = (input.size / actualThreadSize)
@@ -97,7 +94,6 @@ private tailrec fun blink(input: List<Long>, currentBlink: Int, blinks: Int, thr
     for (i in 1..actualThreadSize) {
         val actualLimit = if (i < actualThreadSize) limit else input.size
         val partialSolutionRunner = PartialSolutionRunner(input.subList(start, actualLimit))
-//        println("Adding worker [$start, $actualLimit[")
         threadList.add(partialSolutionRunner)
         start = limit
         limit += chunkSize
@@ -111,7 +107,6 @@ private tailrec fun blink(input: List<Long>, currentBlink: Int, blinks: Int, thr
         out.addAll(partialSolutionRunner.partialOut)
     }
 
-//    println(out)
     return blink(out, currentBlink + 1, blinks)
 }
 
@@ -140,7 +135,7 @@ private class PartialSolutionRunner(val partialIn: List<Long>) : Thread() {
 }
 
 private fun splitDigits(number: Long): List<Long> {
-    var count = PrimitiveLongArrayList()
+    val count = PrimitiveLongArrayList()
     var work = number
     while (work != 0L) {
         count.add(work % 10L)
