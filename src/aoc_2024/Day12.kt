@@ -3,6 +3,7 @@ package aoc_2024
 import aoc_util.PrimitiveMultiDimArray
 import aoc_util.parseInputAsMultiDimArray
 import aoc_util.readInput2024
+import de.dreamcube.hornet_queen.array.PrimitiveCharArray
 import java.util.*
 
 fun main() {
@@ -22,15 +23,36 @@ fun main() {
 
 fun getTotalFenceCost(array: PrimitiveMultiDimArray<Char>): Pair<Int, Int> {
     var result1 = 0
-    var result2 = 0
     val areas = determineAreas(array)
     for (area in areas) {
         val areaCost = area.area * area.perimeter
-        val rebateCost = area.area * area.sides
         result1 += areaCost
-        result2 += rebateCost
+    }
+    var result2 = 0
+    val biggerArray = inflateArray(array)
+    val areas2 = determineAreas(biggerArray)
+    for (area in areas2) {
+        val areaCost = (area.area / 4) * area.sides
+        result2 += areaCost
     }
     return Pair(result1, result2)
+}
+
+private fun inflateArray(array: PrimitiveMultiDimArray<Char>): PrimitiveMultiDimArray<Char> {
+    val height = array.getDimensionSize(0)
+    val width = array.getDimensionSize(1)
+    val out: PrimitiveMultiDimArray<Char> = PrimitiveMultiDimArray(height * 2, width * 2) { PrimitiveCharArray(it) }
+    for (j in 0 until height) {
+        val y = 2 * j
+        for (i in 0 until width) {
+            val x = 2 * i
+            out[y, x] = array[j, i]
+            out[y, x + 1] = array[j, i]
+            out[y + 1, x] = array[j, i]
+            out[y + 1, x + 1] = array[j, i]
+        }
+    }
+    return out
 }
 
 private fun determineAreas(array: PrimitiveMultiDimArray<Char>): List<Area> {
@@ -73,25 +95,32 @@ private fun determineAreas(array: PrimitiveMultiDimArray<Char>): List<Area> {
                     }
                 }
             }
-            val sides = countSides(currentPositions)
+            val sides = countSides(array, currentPositions)
             output.add(Area(currentChar, currentAreaSize, currentPerimeter, sides, currentPositions))
         }
     }
     return output
 }
 
-private fun countSides(currentPositions: List<Pair<Int, Int>>): Int {
+private fun countSides(array: PrimitiveMultiDimArray<Char>, currentPositions: List<Pair<Int, Int>>): Int {
     if (currentPositions.isEmpty()) {
         return 0
     }
-    val workList = ArrayList(currentPositions)
+    val height = array.getDimensionSize(0)
+    val width = array.getDimensionSize(1)
+    val workList = currentPositions.filter{(y,x) ->
+        val char = array[y, x]
+        !(inBounds(y - 1, x, height, width) && array[y - 1, x] == char && inBounds(y + 1, x, height, width) && array[y + 1, x] != char &&
+                inBounds(y, x - 1, height, width) && array[y, x - 1] == char && inBounds(y, x + 1, height, width) && array[y, x + 1] != char)
+    }.toMutableList()
+
     var sides = 0
 
     // horizontal sides
     workList.sortBy { it.second } // sustain relavite order of x positions
     workList.sortBy { it.first } // sort by y
-    var currentY = workList.first().first
-    var currentX = workList.first().second
+    var currentY = workList[0].first
+    var currentX = workList[0].second
     for ((y, x) in workList) {
         if (y != currentY) {
             sides += 1
@@ -108,8 +137,8 @@ private fun countSides(currentPositions: List<Pair<Int, Int>>): Int {
     // vertical sides
     workList.sortBy { it.first } // sustain relative order of y positions
     workList.sortBy { it.second } // sort by x
-    currentY = workList.first().first
-    currentX = workList.first().second
+    currentY = workList[0].first
+    currentX = workList[0].second
     for ((y, x) in workList) {
         if (x != currentX) {
             sides += 1
