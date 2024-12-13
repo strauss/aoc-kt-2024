@@ -4,6 +4,7 @@ import aoc_util.CombinatorialIterator
 import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import kotlin.math.min
+import kotlin.math.round
 
 private const val tokenACost = 3
 private const val tokenBCost = 1
@@ -16,11 +17,29 @@ fun main() {
 
 
     println("Test Result        : ${evaluateMachines(testInput)} ")
-    println("Test Result smartly: ${evaluateMachinesSmartly(testInput)}")
     println("Result: ${evaluateMachines(input)}")
+    println("Result: ${evaluateMachinesMathematically(input)}")
 
-    println("Test Result 2: ${evaluateMachinesSmartly(testInput, 10000000000000L)}")
-//    println("Result 2: $result2")
+    println("Test Result 2: ${evaluateMachinesMathematically(testInput, 10000000000000L)}")
+    println("Result 2: ${evaluateMachinesMathematically(input, 10000000000000L)}")
+}
+
+private fun evaluateMachinesMathematically(machines: List<Machine>, corrections: Long = 0L): Pair<Long, Double> {
+    var minTotalCost = 0.0
+    for ((aX, aY, bX, bY, pX, pY) in machines) {
+        val xP = pX.toDouble() + corrections
+        val yP = pY.toDouble() + corrections
+        val xA = aX.toDouble()
+        val yA = aY.toDouble()
+        val xB = bX.toDouble()
+        val yB = bY.toDouble()
+        val a = (xP * yB - xB * yP) / (xA * yB - xB * yA)
+        val b = (yP - yA * a) / yB
+        if (a == round(a) && b == round(b)) {
+            minTotalCost += a * tokenACost + b * tokenBCost
+        }
+    }
+    return Pair(minTotalCost.toLong(), minTotalCost)
 }
 
 private fun evaluateMachinesSmartly(machines: List<Machine>, correction: Long = 0L): Pair<Int, Long> {
