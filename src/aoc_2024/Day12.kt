@@ -1,6 +1,7 @@
 package aoc_2024
 
 import aoc_util.PrimitiveMultiDimArray
+import aoc_util.inBounds
 import aoc_util.parseInputAsMultiDimArray
 import aoc_util.readInput2024
 import java.util.*
@@ -180,14 +181,5 @@ private fun perimeter(
     }
     return 0
 }
-
-private fun inBounds(position: Pair<Int, Int>, height: Int, width: Int): Boolean {
-    return inBounds(position.first, position.second, height, width)
-}
-
-private fun inBounds(y: Int, x: Int, height: Int, width: Int): Boolean {
-    return y in 0..<height && x in 0..<width
-}
-
 
 private data class Area(val char: Char, val area: Int, val perimeter: Int, val sides: Int, val positions: List<Pair<Int, Int>>)
