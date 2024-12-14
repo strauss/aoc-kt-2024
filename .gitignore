@@ -4,3 +4,4 @@
 build
 aoc/**/*.txt
 local.properties
+out/**/*.png
