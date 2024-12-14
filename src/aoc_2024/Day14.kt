@@ -14,9 +14,7 @@ fun main() {
     val result = determineSafetyFactor(100, input, 103, 101)
     println("Test result: $testResut")
     println("Result: $result")
-//    val interactiveResult = interactiveSimulation(input, 103, 101)
-//    println("Result2: $interactiveResult")
-    paintSimulation(input, 103, 101, 10000)
+    paintSimulation(input, 103, 101, 10_000)
 }
 
 private fun paintSimulation(robots: List<Robot>, height: Int, width: Int, steps: Int) {
@@ -26,17 +24,30 @@ private fun paintSimulation(robots: List<Robot>, height: Int, width: Int, steps:
         for (robot in currentRobots) {
             coordinateSet.add(Pair(robot.row, robot.col))
         }
-        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-        for (row in 0..<height) {
-            for (col in 0..<width) {
-                if (coordinateSet.contains(Pair(row, col))) {
-                    image.setRGB(col, row, 0xff5500)
-                } else {
-                    image.setRGB(col, row, 0x000000)
-                }
+        var generateImage = false
+        for ((row, col, _, _) in robots) {
+            val checkList = ArrayList<Pair<Int, Int>>()
+            for (k in 0..<10) {
+                checkList.add(Pair(row, col + k))
+            }
+            generateImage = coordinateSet.containsAll(checkList)
+            if (generateImage) {
+                break
             }
         }
-        ImageIO.write(image, "PNG", File("out/2024/Day14/$i.png"))
+        if (generateImage) {
+            val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+            for (row in 0..<height) {
+                for (col in 0..<width) {
+                    if (coordinateSet.contains(Pair(row, col))) {
+                        image.setRGB(col, row, 0xff5500)
+                    } else {
+                        image.setRGB(col, row, 0x000000)
+                    }
+                }
+            }
+            ImageIO.write(image, "PNG", File("out/2024/Day14/$i.png"))
+        }
         currentRobots = simulateMovement(currentRobots, 0, 1, height, width)
     }
 }
@@ -55,7 +66,6 @@ private fun determineSafetyFactor(afterSeconds: Int, robots: List<Robot>, height
             robot.row < vMedian && robot.col > hMedian -> q2 += 1
             robot.row > vMedian && robot.col < hMedian -> q3 += 1
             robot.row > vMedian && robot.col > hMedian -> q4 += 1
-//            else -> println("Ignored $robot")
         }
     }
     return q1 * q2 * q3 * q4
@@ -97,7 +107,6 @@ private tailrec fun simulateMovement(robots: List<Robot>, second: Int, maxSecond
     if (second == maxSeconds) {
         return robots
     }
-//    println(robots[10])
     val out = mutableListOf<Robot>()
     for (robot in robots) {
         var row = robot.row + robot.vVertical
