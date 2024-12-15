@@ -1,8 +1,6 @@
 package aoc_util
 
 import de.dreamcube.hornet_queen.array.PrimitiveCharArray
-import de.dreamcube.hornet_queen.list.PrimitiveCharArrayList
-import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.io.path.Path
@@ -43,30 +41,37 @@ fun parseInputAsMultiDimArray(input: List<String>): PrimitiveMultiDimArray<Char>
 }
 
 val intNumberRegex = "(-?\\d+)".toRegex()
-fun String.extractInts(): List<Int> {
-    val out = PrimitiveIntArrayList()
-    intNumberRegex.findAll(this).iterator().forEach { matchResult ->
-        out.add(matchResult.groupValues[1].toInt())
+fun String.extractInts(row: Int = 0): List<IntAndLocation> {
+    val out: MutableList<IntAndLocation> = ArrayList()
+    intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
+        out.add(IntAndLocation(matchResult.groupValues[1].toInt(), row, matchResult.range))
     }
     return out
 }
 
-fun getAdjacentValues(array: PrimitiveMultiDimArray<Char>, row: Int, col: Int): List<Char> {
-    val result = PrimitiveCharArrayList()
+data class IntAndLocation(val number: Int, val row: Int, val range: IntRange)
 
-    result.addIfInBounds(array, row - 1, col) // north
-    result.addIfInBounds(array, row - 1, col + 1) // north-east
-    result.addIfInBounds(array, row, col + 1) // east
-    result.addIfInBounds(array, row + 1, col + 1) // south-east
-    result.addIfInBounds(array, row + 1, col) // south
-    result.addIfInBounds(array, row + 1, col - 1) // south-west
-    result.addIfInBounds(array, row, col - 1) // west
-    result.addIfInBounds(array, row - 1, col - 1) // north-west
+fun getAdjacentValues(
+    array: PrimitiveMultiDimArray<Char>,
+    row: Int,
+    col: Int,
+    filter: (Char) -> Boolean = { true }
+): List<Pair<Char, Pair<Int, Int>>> {
+    val result: MutableList<Pair<Char, Pair<Int, Int>>> = ArrayList()
+
+    result.addIfInBounds(array, row - 1, col, filter)// north
+    result.addIfInBounds(array, row - 1, col + 1, filter) // north-east
+    result.addIfInBounds(array, row, col + 1, filter) // east
+    result.addIfInBounds(array, row + 1, col + 1, filter) // south-east
+    result.addIfInBounds(array, row + 1, col, filter) // south
+    result.addIfInBounds(array, row + 1, col - 1, filter) // south-west
+    result.addIfInBounds(array, row, col - 1, filter) // west
+    result.addIfInBounds(array, row - 1, col - 1, filter) // north-west
 
     return result
 }
 
-fun MutableList<Char>.addIfInBounds(
+fun MutableList<Pair<Char, Pair<Int, Int>>>.addIfInBounds(
     from: PrimitiveMultiDimArray<Char>,
     row: Int,
     col: Int,
@@ -77,7 +82,7 @@ fun MutableList<Char>.addIfInBounds(
     if (inBounds(row, col, height, width)) {
         val element = from[row, col]
         if (filter(element)) {
-            this.add(element)
+            this.add(Pair(element, Pair(row, col)))
         }
     }
 }
