@@ -1,6 +1,7 @@
 package aoc_util
 
 import de.dreamcube.hornet_queen.array.PrimitiveCharArray
+import de.dreamcube.hornet_queen.list.PrimitiveLongArrayList
 import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.io.path.Path
@@ -45,6 +46,30 @@ fun String.extractInts(row: Int = 0): List<IntAndLocation> {
     val out: MutableList<IntAndLocation> = ArrayList()
     intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
         out.add(IntAndLocation(matchResult.groupValues[1].toInt(), row, matchResult.range))
+    }
+    return out
+}
+
+fun String.extractSchlong(): List<Long> {
+    val out = PrimitiveLongArrayList()
+    intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
+        out.add(matchResult.groupValues[1].toLong())
+    }
+    return out
+}
+
+/**
+ * Pairs up entries in a list. If the list has an odd size, the last element is dropped.
+ */
+fun <T> List<T>.createPairs(): List<Pair<T, T>> {
+    val out = ArrayList<Pair<T, T>>()
+    val iterator = iterator()
+    while (iterator.hasNext()) {
+        val first = iterator.next()
+        if (iterator.hasNext()) {
+            val second = iterator.next()
+            out.add(Pair(first, second))
+        }
     }
     return out
 }
