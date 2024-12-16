@@ -3,6 +3,7 @@ package aoc_2024
 import aoc_util.PrimitiveMultiDimArray
 import aoc_util.parseInputAsMultiDimArray
 import aoc_util.readInput2024
+import aoc_util.show
 import de.dreamcube.hornet_queen.array.PrimitiveCharArray
 
 private const val wall = '#'
@@ -24,7 +25,7 @@ fun main() {
 private fun test() {
     val input = readInput2024("Day15_testX")
     val (array, moves) = parseInput(input)
-    print(showMaze(array))
+    print(show(array))
     simulateMovementX(array, moves)
 }
 
@@ -41,7 +42,7 @@ private fun solve() {
     println("Result: ${evaluateCoordinates(array)}")
     simulateMovementX(testArrayX, testMoves)
     simulateMovementX(arrayX, moves)
-    showMaze(arrayX)
+    show(arrayX)
     println("Test result X: ${evaluateCoordinatesX(testArrayX)}")
     println("Result X: ${evaluateCoordinatesX(arrayX)}")
     // 1488522 is too low
@@ -303,19 +304,6 @@ private fun move(
     maze[target.first, target.second] = maze[source.first, source.second]
     maze[source.first, source.second] = free
     return target
-}
-
-private fun showMaze(maze: PrimitiveMultiDimArray<Char>): String {
-    val height = maze.getDimensionSize(0)
-    val width = maze.getDimensionSize(1)
-    val out = StringBuilder()
-    for (row in 0..<height) {
-        for (col in 0..<width) {
-            out.append(maze[row, col])
-        }
-        out.append('\n')
-    }
-    return out.toString()
 }
 
 private fun searchForBot(maze: PrimitiveMultiDimArray<Char>): Pair<Int, Int> {

@@ -112,6 +112,19 @@ fun MutableList<Pair<Char, Pair<Int, Int>>>.addIfInBounds(
     }
 }
 
+fun show(maze: PrimitiveMultiDimArray<Char>): String {
+    val height = maze.getDimensionSize(0)
+    val width = maze.getDimensionSize(1)
+    val out = StringBuilder()
+    for (row in 0..<height) {
+        for (col in 0..<width) {
+            out.append(maze[row, col])
+        }
+        out.append('\n')
+    }
+    return out.toString()
+}
+
 fun inBounds(position: Pair<Int, Int>, height: Int, width: Int): Boolean {
     return inBounds(position.first, position.second, height, width)
 }
