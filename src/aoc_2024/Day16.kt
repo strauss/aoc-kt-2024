@@ -10,6 +10,7 @@ private const val wall = '#'
 private const val free = '.'
 private const val start = 'S'
 private const val target = 'E'
+private const val marker = 'O'
 private const val north = 0
 private const val east = 90
 private const val south = 180
@@ -23,11 +24,15 @@ fun main() {
     val testResult = costToTarget(testMaze)
     println(show(testMaze))
     println("Test result: $testResult")
+    val testPathFields = markAllBestPaths(testMaze)
+    println("Test path fields: $testPathFields")
 
     val input = readInput2024("Day16")
     val maze = parseInputAsMultiDimArray(input)
     val result = costToTarget(maze)
     println("Result: $result")
+    val pathFields = markAllBestPaths(maze)
+    println("Path fields: $pathFields")
 }
 
 private fun costToTarget(maze: PrimitiveMultiDimArray<Char>): Int {
@@ -63,6 +68,117 @@ private fun determinePath(parent: Map<Position, Position>, target: Pair<Int, Int
         currentChild = currentParent
     }
     return result.reversed()
+}
+
+private fun markAllBestPaths(maze: PrimitiveMultiDimArray<Char>): Int {
+    val maxCost = costToTarget(maze)
+    val start = searchFor(maze, start)
+    val startPosition = Position(start.first, start.second, east)
+    val target = searchFor(maze, target)
+    val allBestPaths = exhaustiveSearch(maze, startPosition, target, 0, maxCost, setOf(startPosition), listOf(start), emptyList())
+    val markMaze = maze.createCopy()
+    for (path in allBestPaths) {
+        for ((row, col) in path) {
+            markMaze[row, col] = marker
+        }
+    }
+    return countMarks(markMaze)
+}
+
+private fun countMarks(maze: PrimitiveMultiDimArray<Char>): Int {
+    val height = maze.getDimensionSize(0)
+    val width = maze.getDimensionSize(1)
+    var out = 0
+    for (row in 0..<height) {
+        for (col in 0..<width) {
+            val currentField = maze[row, col]
+            if (currentField == marker) {
+                out += 1
+            }
+        }
+    }
+    return out
+}
+
+private fun exhaustiveSearch(
+    maze: PrimitiveMultiDimArray<Char>,
+    position: Position,
+    target: Pair<Int, Int>,
+    currentCost: Int,
+    maxCost: Int,
+    fieldsSoFar: Set<Position>,
+    pathSoFar: List<Pair<Int, Int>>,
+    solutionsSoFar: List<List<Pair<Int, Int>>>,
+): List<List<Pair<Int, Int>>> {
+    if (currentCost > maxCost) {
+        return solutionsSoFar
+    }
+    val currentPosition = Pair(position.row, position.col)
+    val currentDirection = position.direction
+    if (currentPosition == target) {
+        return solutionsSoFar.plus(listOf(pathSoFar))
+    }
+    val localResultList = ArrayList(solutionsSoFar)
+    val height = maze.getDimensionSize(0)
+    val width = maze.getDimensionSize(1)
+    val (row, col) = currentPosition
+    val adjacentPositions = getAdjacentPositions(row, col, height, width).filter { maze[it.first, it.second] != wall }
+
+    val straight = currentPosition + currentDirection.direction()
+    val straightPosition = Position(straight.first, straight.second, currentDirection)
+    if (adjacentPositions.contains(straight) && !fieldsSoFar.contains(straightPosition)) {
+        val localFieldsSoFar = fieldsSoFar.plus(straightPosition)
+        val localPathSoFar = pathSoFar.plus(straight)
+        val straightResult = exhaustiveSearch(
+            maze,
+            straightPosition,
+            target,
+            currentCost + stepCost,
+            maxCost,
+            localFieldsSoFar,
+            localPathSoFar,
+            solutionsSoFar
+        )
+        localResultList.addAll(straightResult)
+    }
+    val leftDirection = currentDirection.turn(-90)
+    val left = currentPosition + leftDirection.direction()
+    val leftPosition = Position(left.first, left.second, leftDirection)
+    if (adjacentPositions.contains(left) && !fieldsSoFar.contains(leftPosition)) {
+        val localFieldsSoFar = fieldsSoFar.plus(leftPosition)
+        val localPathSoFar = pathSoFar.plus(left)
+        val leftResult = exhaustiveSearch(
+            maze,
+            leftPosition,
+            target,
+            currentCost + stepCost + turnCost,
+            maxCost,
+            localFieldsSoFar,
+            localPathSoFar,
+            solutionsSoFar
+        )
+        localResultList.addAll(leftResult)
+    }
+
+    val rightDirection = currentDirection.turn(+90)
+    val right = currentPosition + rightDirection.direction()
+    val rightPosition = Position(right.first, right.second, rightDirection)
+    if (adjacentPositions.contains(right) && !fieldsSoFar.contains(rightPosition)) {
+        val localFieldsSoFar = fieldsSoFar.plus(rightPosition)
+        val localPathSoFar = pathSoFar.plus(right)
+        val rightResult = exhaustiveSearch(
+            maze,
+            rightPosition,
+            target,
+            currentCost + stepCost + turnCost,
+            maxCost,
+            localFieldsSoFar,
+            localPathSoFar,
+            solutionsSoFar
+        )
+        localResultList.addAll(rightResult)
+    }
+    return localResultList
 }
 
 private fun performSearch(maze: PrimitiveMultiDimArray<Char>, start: Pair<Int, Int>, target: Pair<Int, Int>): Map<Position, Position> {
@@ -117,8 +233,8 @@ private fun getAdjacentPositions(y: Int, x: Int, height: Int, width: Int): List<
 private fun searchFor(array: PrimitiveMultiDimArray<Char>, searchFor: Char): Pair<Int, Int> {
     val height = array.getDimensionSize(0)
     val width = array.getDimensionSize(1)
-    for (row in 0 until height) {
-        for (col in 0 until width) {
+    for (row in 0..<height) {
+        for (col in 0..<width) {
             val currentField = array[row, col]
             if (currentField == searchFor) {
                 return Pair(row, col)

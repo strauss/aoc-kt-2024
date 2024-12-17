@@ -2,9 +2,9 @@ package aoc_util
 
 import de.dreamcube.hornet_queen.array.PrimitiveArray
 
-class PrimitiveMultiDimArray<T>(private vararg val dimension: Int, oneDimConstructor: (Int) -> PrimitiveArray<T>) {
+class PrimitiveMultiDimArray<T>(private vararg var dimension: Int, private val oneDimConstructor: (Int) -> PrimitiveArray<T>) {
 
-    private val internalArray: PrimitiveArray<T>
+    private var internalArray: PrimitiveArray<T>
 
     init {
         // check validity
@@ -54,6 +54,12 @@ class PrimitiveMultiDimArray<T>(private vararg val dimension: Int, oneDimConstru
     }
 
     operator fun iterator() = internalArray.iterator()
+
+    fun createCopy(): PrimitiveMultiDimArray<T> {
+        val out = PrimitiveMultiDimArray(*dimension, oneDimConstructor = oneDimConstructor)
+        out.internalArray = internalArray.getResizedCopy(0)
+        return out
+    }
 }
 
 private fun IntArray.product(fromIndex: Int = 0, toIndex: Int = this.size - 1): Int {
