@@ -3,6 +3,7 @@ package aoc_2024
 import aoc_util.PrimitiveMultiDimArray
 import aoc_util.parseInputAsMultiDimArray
 import aoc_util.readInput2024
+import aoc_util.show
 import java.util.*
 
 private const val wall = '#'
@@ -23,33 +24,74 @@ fun main() {
     val testResult = costToTarget(testMaze)
 //    println(show(testMaze))
     println("Test result: $testResult")
-    val testPathFields = markAllBestPaths(testMaze)
-    println("Test path fields: $testPathFields")
-
-    val input = readInput2024("Day16")
-    val maze = parseInputAsMultiDimArray(input)
-    val result = costToTarget(maze)
-    println("Result: $result")
+//    val testPathFields = markAllBestPaths(testMaze)
+//    println("Test path fields: $testPathFields")
+//
+//    val input = readInput2024("Day16")
+//    val maze = parseInputAsMultiDimArray(input)
+//    val result = costToTarget(maze)
+//    println("Result: $result")
 //    val pathFields = markAllBestPaths(maze)
 //    println("Path fields: $pathFields")
 }
 
-private fun costToTarget(maze: PrimitiveMultiDimArray<Char>): Int {
+private fun costToTarget(maze: PrimitiveMultiDimArray<Char>): Pair<Int, Int> {
     val start = searchFor(maze, start)
     val target = searchFor(maze, target)
     val parent = performSearch(maze, start)
-    val (moves, points) = determinePath(parent, target)
-//    val copy = createMarkedCopy(maze, listOf(points))
-//    println(show(copy))
-//    for (move in moves) {
-//        if (move.cost > 1) {
-//            println(move)
-//        }
-//    }
-    return moves.asSequence().map { it.cost }.sum()
+    val (_, pathWithCost) = determinePath(parent, target)
+    val allPaths = findAlternativePaths(maze, pathWithCost)
+    val allPositions: Set<Pair<Int, Int>> = allPaths.map { Pair(it.position.row, it.position.col) }.toSet()
+    val markedCopy = createMarkedCopy(maze, allPositions)
+    println(show(markedCopy))
+    return Pair(pathWithCost.last().cost, allPositions.size)
 }
 
-private fun determinePath(parent: Map<Position, Position>, target: Pair<Int, Int>): Pair<List<Move>, List<Pair<Int, Int>>> {
+private tailrec fun findAlternativePaths(maze: PrimitiveMultiDimArray<Char>, pathAndCost: List<PositionAndCost>): List<PositionAndCost> {
+    val height = maze.getDimensionSize(0)
+    val width = maze.getDimensionSize(1)
+    val result = mutableListOf<PositionAndCost>()
+    result.addAll(pathAndCost)
+    val containedPositions = pathAndCost.asSequence().map { it.position }.toMutableSet()
+    val resultSizeBefore = result.size
+    for (positionAndCost in pathAndCost) {
+        val (currentPosition, _) = positionAndCost
+        val (row, col, direction) = currentPosition
+        val current = Pair(row, col)
+        val adjacentPositions = getAdjacentPositions(row, col, height, width).filter { maze[it.first, it.second] != wall }
+        val straight = current + direction.direction()
+        val straightPosition = Position(straight.first, straight.second, direction)
+        val leftDirection = direction.turn(-90)
+        val left = current + leftDirection.direction()
+        val leftPosition = Position(left.first, left.second, leftDirection)
+        val rightDirection = direction.turn(+90)
+        val right = current + rightDirection.direction()
+        val rightPosition = Position(right.first, right.second, rightDirection)
+        if (adjacentPositions.contains(straight) && !containedPositions.contains(straightPosition) ||
+            adjacentPositions.contains(left) && !containedPositions.contains(leftPosition) ||
+            adjacentPositions.contains(right) && !containedPositions.contains(rightPosition)
+        ) {
+            val additionalParent: Map<Position, Position> = performExperimentalSearch(maze, positionAndCost.position, pathAndCost)
+            val additionalPositionAndCost = mutableSetOf<PositionAndCost>()
+            for (position in containedPositions) {
+                val (_, newPath: List<PositionAndCost>) = directDeterminePath(position, additionalParent)
+                for (pathPosition in newPath) {
+                    if (!containedPositions.contains(pathPosition.position) && !additionalPositionAndCost.contains(pathPosition)) {
+                        additionalPositionAndCost.add(pathPosition)
+                    }
+                }
+            }
+            result.addAll(additionalPositionAndCost)
+            containedPositions.addAll(additionalPositionAndCost.map { it.position })
+        }
+    }
+    if (resultSizeBefore == result.size) {
+        return result
+    }
+    return findAlternativePaths(maze, result)
+}
+
+private fun determinePath(parent: Map<Position, Position>, target: Pair<Int, Int>): Pair<List<Move>, List<PositionAndCost>> {
     val (tRow, tCol) = target
     val targetPosition: Position?
     val targetToNorth = Position(tRow, tCol, north)
@@ -66,22 +108,39 @@ private fun determinePath(parent: Map<Position, Position>, target: Pair<Int, Int
     if (targetPosition == null) {
         return Pair(emptyList(), emptyList())
     }
+    return directDeterminePath(targetPosition, parent)
+}
+
+private fun directDeterminePath(
+    targetPosition: Position,
+    parent: Map<Position, Position>
+): Pair<List<Move>, List<PositionAndCost>> {
     val result = mutableListOf<Move>()
-    val points = mutableListOf<Pair<Int, Int>>()
-    points.add(target)
     var currentChild: Position = targetPosition
+    val startWithCost: PositionAndCost
     while (true) {
-        val currentParent = parent[currentChild] ?: break
+        val currentParent = parent[currentChild]
+        if (currentParent == null) {
+            startWithCost = PositionAndCost(currentChild, 0)
+            break
+        }
         result.add(currentParent.getMove(currentChild))
-        val (row, col, _) = currentParent
-        points.add(Pair(row, col))
         currentChild = currentParent
     }
-    return Pair(result.reversed(), points.reversed())
+    val moves = result.reversed()
+    val pathWithCost = mutableListOf<PositionAndCost>()
+    pathWithCost.add(startWithCost)
+    for (move in moves) {
+        val (currentPosition, currentCost) = pathWithCost.last()
+        val nextPosition = currentPosition.move(move)
+        val nextCost = currentCost + move.cost
+        pathWithCost.add(PositionAndCost(nextPosition, nextCost))
+    }
+    return Pair(moves, pathWithCost)
 }
 
 private fun markAllBestPaths(maze: PrimitiveMultiDimArray<Char>): Int {
-    val maxCost = costToTarget(maze)
+    val (maxCost, _) = costToTarget(maze)
     val start = searchFor(maze, start)
     val startPosition = Position(start.first, start.second, east)
     val target = searchFor(maze, target)
@@ -103,6 +162,17 @@ private fun createMarkedCopy(
     return markMaze
 }
 
+private fun createMarkedCopy(
+    maze: PrimitiveMultiDimArray<Char>,
+    allPositions: Set<Pair<Int, Int>>
+): PrimitiveMultiDimArray<Char> {
+    val markMaze = maze.createCopy()
+    for ((row, col) in allPositions) {
+        markMaze[row, col] = marker
+    }
+    return markMaze
+}
+
 private fun countMarks(maze: PrimitiveMultiDimArray<Char>): Int {
     val height = maze.getDimensionSize(0)
     val width = maze.getDimensionSize(1)
@@ -116,6 +186,81 @@ private fun countMarks(maze: PrimitiveMultiDimArray<Char>): Int {
         }
     }
     return out
+}
+
+private fun performExperimentalSearch(
+    maze: PrimitiveMultiDimArray<Char>,
+    startPosition: Position,
+    alreadyFoundPath: List<PositionAndCost>
+): Map<Position, Position> {
+    val height = maze.getDimensionSize(0)
+    val width = maze.getDimensionSize(1)
+    val queue: PriorityQueue<PositionAndCost> = PriorityQueue()
+    val visited = mutableSetOf<Pair<Int, Int>>()
+    val alreadyFoundPathCostMap: Map<Position, Int> = alreadyFoundPath.associate { it.position to it.cost }
+    val parent = mutableMapOf<Position, Position>()
+    val start = Pair(startPosition.row, startPosition.col)
+    queue.offer(PositionAndCost(startPosition, alreadyFoundPathCostMap[startPosition] ?: 0))
+    visited.add(start)
+
+    while (queue.isNotEmpty()) {
+        val currentPositionAndCost = queue.poll()
+        val (currentPosition, currentCost) = currentPositionAndCost
+        val (row, col, direction) = currentPosition
+        val current = Pair(row, col)
+        val adjacentPositions = getAdjacentPositions(row, col, height, width).filter { maze[it.first, it.second] != wall }
+        val straight = current + direction.direction()
+        val leftDirection = direction.turn(-90)
+        val left = current + leftDirection.direction()
+        val rightDirection = direction.turn(+90)
+        val right = current + rightDirection.direction()
+        val straightCost = currentCost + stepCost
+        if (adjacentPositions.contains(straight)) {
+            val straightPosition = Position(straight.first, straight.second, direction)
+            val costToStraightOnOtherPath = alreadyFoundPathCostMap[straightPosition]
+            if (costToStraightOnOtherPath != null) {
+                if (costToStraightOnOtherPath == straightCost) {
+                    parent[straightPosition] = currentPosition
+                }
+                visited.add(straight)
+            } else if (!visited.contains(straight)) {
+                queue.offer(PositionAndCost(straightPosition, straightCost))
+                parent[straightPosition] = currentPosition
+                visited.add(straight)
+            }
+        }
+        val straightAndTurnCost = straightCost + turnCost
+        if (adjacentPositions.contains(left)) {
+            val leftPosition = Position(left.first, left.second, leftDirection)
+            val costToLeftOnOtherPath = alreadyFoundPathCostMap[leftPosition]
+            if (costToLeftOnOtherPath != null) {
+                if (costToLeftOnOtherPath == straightAndTurnCost) {
+                    parent[leftPosition] = currentPosition
+                }
+                visited.add(left)
+            } else if (!visited.contains(left)) {
+                queue.offer(PositionAndCost(leftPosition, straightAndTurnCost))
+                parent[leftPosition] = currentPosition
+                visited.add(left)
+            }
+        }
+        if (adjacentPositions.contains(right) && maze[right.first, right.second] != wall) {
+            // for dead ends, we always turn right
+            val rightPosition = Position(right.first, right.second, rightDirection)
+            val costToRightOnOtherPath = alreadyFoundPathCostMap[rightPosition]
+            if (costToRightOnOtherPath != null) {
+                if (costToRightOnOtherPath == straightAndTurnCost) {
+                    parent[rightPosition] = currentPosition
+                }
+                visited.add(right)
+            } else if (!visited.contains(right)) {
+                queue.offer(PositionAndCost(rightPosition, straightAndTurnCost))
+                parent[rightPosition] = currentPosition
+                visited.add(right)
+            }
+        }
+    }
+    return parent
 }
 
 private fun performSearch(
@@ -284,7 +429,7 @@ private data class PositionAndCost(val position: Position, val cost: Int) : Comp
 
 private data class Move(val vert: Int, val hor: Int, val turn: Int, val cost: Int)
 
-//private fun Position.move(move: Move) = Position(row + move.vert, col + move.hor, direction.turn(move.turn))
+private fun Position.move(move: Move) = Position(row + move.vert, col + move.hor, direction.turn(move.turn))
 private fun Position.getMove(other: Position): Move {
     val turnDifference = other.direction - direction
     val turn = if (turnDifference >= 0) turnDifference else 360 + turnDifference
