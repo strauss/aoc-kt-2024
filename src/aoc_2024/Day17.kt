@@ -1,15 +1,12 @@
 package aoc_2024
 
-import aoc_util.extractInts
-import aoc_util.extractSchlong
-import aoc_util.readInput2024
+import aoc_util.*
 
 fun main() {
     println("Computer?")
-//    testRun()
     val testInput = readInput2024("Day17_test")
     val testComputer = parseInput(testInput)
-    val testOutput = testComputer.runProgramm()
+    val testOutput = testComputer.runProgram()
     println("Test output: ${renderOutput(testOutput)}")
 
     val testQuineInput = readInput2024("Day17_test_quine")
@@ -17,23 +14,42 @@ fun main() {
     val testQuineResult = checkQuine(testQuineComputer)
     println("Test quine: $testQuineResult")
 
+    println()
+
     val input = readInput2024("Day17")
     val computer = parseInput(input)
-    val output = computer.runProgramm()
+    val output = computer.runProgram()
     println("Output: ${renderOutput(output)}")
 
-    val quineResult = checkQuine(computer)
-    println("Quine: $quineResult")
-
+    println()
+    println("Detecting secret")
+    val octalSecret = detectSecret(computer)
+    println("Secret: $octalSecret (${octalSecret.asOctalLong()})")
 }
 
-private fun testRun() {
-    val blahComputer = MiniComputer(10, 0, 0, listOf(5, 0, 5, 1, 5, 4))
-    val blahResult1 = blahComputer.runProgramm()
-    println(blahResult1)
-    blahComputer.loadNewProgram(listOf(0, 1, 5, 4, 3, 0), 2024)
-    val blahResult2 = blahComputer.runProgramm()
-    println(blahResult2)
+private fun detectSecret(computer: MiniComputer): String {
+    val program = computer.program
+    val programString = renderOutput(program)
+    val limit = program.size
+    val b = computer.registerB
+    val c = computer.registerC
+    println("Limit: $limit")
+    val sb = StringBuilder()
+    for (run in 1..limit) {
+        val currentNumberString = sb.toString()
+        for (i in 0L..<64L) {
+            val workingNumber = currentNumberString + (i.asOctalString())
+            computer.loadNewProgram(program, workingNumber.asOctalLong(), b, c)
+            val currentResult = computer.runProgram()
+            val renderOutput = renderOutput(currentResult)
+            if (currentResult.size == workingNumber.length && programString.endsWith(renderOutput)) {
+                println("Output: $renderOutput")
+                sb.append(i.asOctalString())
+                break
+            }
+        }
+    }
+    return sb.toString()
 }
 
 private fun checkQuine(computer: MiniComputer): Long {
@@ -44,7 +60,7 @@ private fun checkQuine(computer: MiniComputer): Long {
     val c = computer.registerC
     while (currentA > 0) {
         computer.loadNewProgram(program, currentA, b, c)
-        val currentResult = computer.runProgramm(limit)
+        val currentResult = computer.runProgram(limit)
         if (currentResult == program) {
             break
         }
@@ -75,7 +91,7 @@ private data class MiniComputer(var registerA: Long, var registerB: Long, var re
     private var programCounter = 0
     private val output: MutableList<Int> = mutableListOf()
 
-    fun runProgramm(outputLimit: Int = Int.MAX_VALUE): List<Int> {
+    fun runProgram(outputLimit: Int = Int.MAX_VALUE): List<Int> {
         while (programCounter < program.size && output.size <= outputLimit) {
             val opCode = program[programCounter]
             val literalOperand: Long = program[programCounter + 1].toLong()
