@@ -6,6 +6,7 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.io.path.Path
 import kotlin.io.path.readText
+import kotlin.math.abs
 
 fun readInput2023(name: String) = internalReadInput(name, 2023)
 
@@ -131,4 +132,55 @@ fun inBounds(position: Pair<Int, Int>, height: Int, width: Int): Boolean {
 
 fun inBounds(y: Int, x: Int, height: Int, width: Int): Boolean {
     return y in 0..<height && x in 0..<width
+}
+
+fun String.asOctalLong(): Long {
+    if (isBlank()) {
+        return 0
+    }
+    return when (this) {
+        "00" -> 0L
+        "01" -> 1L
+        "02" -> 2L
+        "03" -> 3L
+        "04" -> 4L
+        "05" -> 5L
+        "06" -> 6L
+        "07" -> 7L
+//        "08" -> 8L
+//        "09" -> 9L
+        else -> this.toLong(8)
+    }
+}
+
+fun Long.asOctalString(): String {
+    if (this in 0L..<8L) {
+        return when (this) {
+            0L -> "00"
+            1L -> "01"
+            2L -> "02"
+            3L -> "03"
+            4L -> "04"
+            5L -> "05"
+            6L -> "06"
+            7L -> "07"
+            else -> error("unreachable")
+        }
+    }
+    val out = StringBuilder()
+    var n = abs(this)
+    while (n > 0) {
+        out.append(n % 8)
+        n /= 8
+    }
+    if (this < 0) {
+        out.append("-")
+    }
+    return out.toString().reversed()
+}
+
+fun main() {
+    println("11".asOctalLong())
+
+    println(16L.asOctalString())
 }
