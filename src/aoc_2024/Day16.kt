@@ -405,7 +405,7 @@ private fun getAdjacentPositions(y: Int, x: Int, height: Int, width: Int): List<
     }
 }
 
-private fun searchFor(array: PrimitiveMultiDimArray<Char>, searchFor: Char): Pair<Int, Int> {
+fun searchFor(array: PrimitiveMultiDimArray<Char>, searchFor: Char): Pair<Int, Int> {
     val height = array.getDimensionSize(0)
     val width = array.getDimensionSize(1)
     for (row in 0..<height) {

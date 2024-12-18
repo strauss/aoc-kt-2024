@@ -12,7 +12,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableSet<Int>>().create()
 
     fun createCopy(): BitSetAdjacencyBasedGraph<V> {
-        val copy = BitSetAdjacencyBasedGraph<V>()
+        val copy = BitSetAdjacencyBasedGraph<V>(directed)
         copy.nextId = nextId
         copy.vertexToIdMap.putAll(vertexToIdMap)
         copy.idToVertexMap.putAll(idToVertexMap)
@@ -257,11 +257,5 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
             }
         }
 
-    }
-}
-
-fun blackMagic(vertex: String, g: BitSetAdjacencyBasedGraph<String>) {
-    g.run {
-        println(vertex.getId())
     }
 }
