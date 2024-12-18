@@ -25,7 +25,7 @@ private fun shatter(graph: BitSetAdjacencyBasedGraph<String>): Int {
     graph.run {
         val treeEdgeCounter =
             object : BitSetAdjacencyBasedGraph<String>.SearchVisitor() {
-                override fun visitTreeEdge(edge: BitSetAdjacencyBasedGraph<String>.Edge) {
+                override fun visitTreeEdge(edge: BitSetAdjacencyBasedGraph<String>.Edge, from: String, to: String) {
                     treeEdgeCount[edge] = (treeEdgeCount[edge] ?: 0) + 1
                 }
             }
