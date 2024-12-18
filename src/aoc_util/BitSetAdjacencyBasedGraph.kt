@@ -4,7 +4,7 @@ import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 import java.util.*
 
-class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
+class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> {
     private var nextId = 0
     private val vertexToIdMap: MutableMap<V, Int> = HashMap()
     private val idToVertexMap: MutableMap<Int, V> = HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<V>().create()
@@ -71,6 +71,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
 
     fun vertexIterator(): Iterator<V> = vertexToIdMap.keys.iterator()
 
+    override fun iterator(): Iterator<V> = vertexIterator()
+
     fun getEdges(): List<Edge> {
         val edges: MutableList<Edge> = ArrayList()
         val vertexIterator = vertexIterator()
@@ -96,6 +98,9 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
         }
     }
 
+    fun V.isolate() = this.adjacencies().forEach { disconnect(it) }
+
+
     fun V.isConnectedWith(vertex: V): Boolean = idToAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
             (!directed && idToAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
 
@@ -112,15 +117,15 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
             // Default empty implementation
         }
 
-        open fun visitEdge(edge: Edge) {
+        open fun visitEdge(edge: Edge, from: V, to: V) {
             // Default empty implementation
         }
 
-        open fun visitTreeEdge(edge: Edge) {
+        open fun visitTreeEdge(edge: Edge, from: V, to: V) {
             // Default empty implementation
         }
 
-        open fun visitFrond(edge: Edge) {
+        open fun visitFrond(edge: Edge, from: V, to: V) {
             // Default empty implementation
         }
         // TODO: add further functions
@@ -154,16 +159,16 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
             currentVertex.adjacencies().forEach { adjacentVertex: V ->
                 val currentEdge = Edge(currentVertex, adjacentVertex)
 
-                visitor.visitEdge(currentEdge)
+                visitor.visitEdge(currentEdge, currentVertex, adjacentVertex)
 
                 if (!entered.contains(adjacentVertex.getId())) {
                     entered.add(adjacentVertex.getId())
                     vertexBuffer.add(adjacentVertex)
 
                     visitor.visitVertex(adjacentVertex)
-                    visitor.visitTreeEdge(currentEdge)
+                    visitor.visitTreeEdge(currentEdge, currentVertex, adjacentVertex)
                 } else {
-                    visitor.visitFrond(currentEdge)
+                    visitor.visitFrond(currentEdge, currentVertex, adjacentVertex)
                 }
             }
             if (vertexBuffer.isEmpty() && complete) {
@@ -253,7 +258,6 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) {
         }
 
     }
-
 }
 
 fun blackMagic(vertex: String, g: BitSetAdjacencyBasedGraph<String>) {
