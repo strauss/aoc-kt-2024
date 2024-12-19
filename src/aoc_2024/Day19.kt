@@ -9,12 +9,55 @@ fun main() {
     val testTokenPool = TokenPool(testTokens)
     val possibleTestSamples = countPossibleSamples(testSamples, testTokenPool)
     println("Test result: $possibleTestSamples")
+    val testCombinations = countPossibleCombinations(testSamples, testTokenPool)
+    println("Test combinations: $testCombinations")
 
     val input = readInput2024("Day19")
     val (tokens, samples) = parseInput(input)
     val tokenPool = TokenPool(tokens)
     val possibleSamples = countPossibleSamples(samples, tokenPool)
     println("Result: $possibleSamples")
+    val combinations = countPossibleCombinations(samples, tokenPool)
+    println("Combinations: $combinations")
+}
+
+private fun countPossibleCombinations(samples: List<String>, tokenPool: TokenPool): Long {
+    var out = 0L
+    val tokensAsSet = tokenPool.availableTokens.toSet()
+    val alreadyCountCombinations = mutableMapOf<String, Long>()
+    for (sample in samples) {
+        if (samplePossibleRegex(sample, tokenPool)) {
+            val countCombinations = countCombinations(sample, tokensAsSet, tokenPool, alreadyCountCombinations)
+            out += countCombinations
+        }
+    }
+    return out
+}
+
+private fun countCombinations(
+    sample: String,
+    remainingTokens: Set<String>,
+    tokenPool: TokenPool,
+    alreadyCounted: MutableMap<String, Long>
+): Long {
+    if (sample.isBlank()) {
+        return 1
+    }
+    val newRemainingTokens: MutableSet<String> = remainingTokens.asSequence().filter { sample.contains(it) }.toMutableSet()
+    if (newRemainingTokens.isEmpty()) {
+        return 0
+    }
+
+    var combinations = 0L
+    for (token in newRemainingTokens) {
+        if (sample.startsWith(token)) {
+            val subSample = sample.substring(token.length..<sample.length)
+            if (samplePossibleRegex(subSample, tokenPool)) {
+                combinations += alreadyCounted.getOrPut(subSample) { countCombinations(subSample, newRemainingTokens, tokenPool, alreadyCounted) }
+            }
+        }
+    }
+    return combinations
 }
 
 private fun countPossibleSamples(samples: List<String>, tokenPool: TokenPool): Int {
