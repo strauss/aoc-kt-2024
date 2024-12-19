@@ -7,8 +7,8 @@ fun main() {
     val testInput = readInput2024("Day19_test")
     val (testTokens, testSamples) = parseInput(testInput)
     val testTokenPool = TokenPool(testTokens)
-//    val possibleTestSamples = countPossibleSamples(testSamples, testTokenPool)
-//    println("Test result: $possibleTestSamples")
+    val possibleTestSamples = countPossibleSamples(testSamples, testTokenPool)
+    println("Test result: $possibleTestSamples")
 
     val input = readInput2024("Day19")
     val (tokens, samples) = parseInput(input)
@@ -20,13 +20,23 @@ fun main() {
 private fun countPossibleSamples(samples: List<String>, tokenPool: TokenPool): Int {
     var out = 0
     for (sample in samples) {
-        val samplePossible = samplePossible(sample, tokenPool)
+        val samplePossible = samplePossibleRegex(sample, tokenPool)
         if (samplePossible) {
             out += 1
         }
-        println("$sample: $samplePossible")
     }
     return out
+}
+
+private fun samplePossibleRegex(
+    sample: String,
+    tokenPool: TokenPool
+): Boolean {
+    val tokens = tokenPool.availableTokens.filter { sample.contains(it) }
+    val regex = "(?:${tokens.joinToString(")*|(?:", "(?:", ")*")})*".toRegex()
+
+    val result = regex.matchEntire(sample)
+    return result != null
 }
 
 private fun samplePossibleFast(
@@ -57,19 +67,20 @@ private fun samplePossibleFast(
             val possibleFragments: MutableSet<Int> = PrimitiveIntSetB()
             for (i in remainingFragments.indices) {
                 val currentFragment = remainingFragments[i]
-                val fragmentPossible = samplePossible(currentFragment, tokenPool, newRemainingTokens, maxKeySize)
+                val fragmentPossible = samplePossibleFast(currentFragment, tokenPool, newRemainingTokens, maxKeySize)
                 if (fragmentPossible) {
                     possibleFragments.add(i)
                 }
             }
 
-            // if all fragments are possible we win
+            // if all fragments are possible, we win
             if (possibleFragments.containsAll(remainingFragments.indices.toList())) {
                 return true
             }
 
             // TODO: if fragments are impossible, we need to fuse some of them with the current token and check the bigger one. If that is impossible
             // TODO: the whole thing is impossible. The selection for the fusion is the tricky part
+            // TODO: we need to remove the currently processed token from the newRemainingTokens before we call recursively
 
         }
     }
