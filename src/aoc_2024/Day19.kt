@@ -1,13 +1,14 @@
 package aoc_2024
 
 import aoc_util.readInput2024
+import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 
 fun main() {
     val testInput = readInput2024("Day19_test")
     val (testTokens, testSamples) = parseInput(testInput)
     val testTokenPool = TokenPool(testTokens)
-    val possibleTestSamples = countPossibleSamples(testSamples, testTokenPool)
-    println("Test result: $possibleTestSamples")
+//    val possibleTestSamples = countPossibleSamples(testSamples, testTokenPool)
+//    println("Test result: $possibleTestSamples")
 
     val input = readInput2024("Day19")
     val (tokens, samples) = parseInput(input)
@@ -23,29 +24,83 @@ private fun countPossibleSamples(samples: List<String>, tokenPool: TokenPool): I
         if (samplePossible) {
             out += 1
         }
-//        println("$sample: $samplePossible")
+        println("$sample: $samplePossible")
     }
     return out
 }
 
-private fun samplePossible(sample: String, tokenPool: TokenPool, maxKeySize: Int = 4): Boolean {
+private fun samplePossibleFast(
+    sample: String,
+    tokenPool: TokenPool,
+    remainingTokens: Set<String> = tokenPool.availableTokens.toSet(),
+    maxKeySize: Int = 4
+): Boolean {
     if (sample.isBlank()) {
         return true
     }
-    val keyList = mutableListOf<String>()
-    var currentKeySize = maxKeySize
-    while (currentKeySize > 0) {
-        if (sample.length >= currentKeySize) {
-            keyList.add(sample.substring(0..<currentKeySize))
-        }
-        currentKeySize -= 1
+    val newRemainingTokens: MutableSet<String> = remainingTokens.asSequence().filter { sample.contains(it) }.toMutableSet()
+    if (newRemainingTokens.isEmpty()) {
+        return false
     }
+
+    val keyList = determineKeyList(sample, maxKeySize)
 
     for (key in keyList) {
         val possibleTokens = tokenPool.tokenMap[key] ?: emptyList()
         for (token in possibleTokens) {
+            if (!newRemainingTokens.contains(token)) {
+                continue
+            }
+
+            // split the string at the current token and search recursively all remaining substrings
+            val remainingFragments: List<String> = sample.split(token.toRegex())
+            val possibleFragments: MutableSet<Int> = PrimitiveIntSetB()
+            for (i in remainingFragments.indices) {
+                val currentFragment = remainingFragments[i]
+                val fragmentPossible = samplePossible(currentFragment, tokenPool, newRemainingTokens, maxKeySize)
+                if (fragmentPossible) {
+                    possibleFragments.add(i)
+                }
+            }
+
+            // if all fragments are possible we win
+            if (possibleFragments.containsAll(remainingFragments.indices.toList())) {
+                return true
+            }
+
+            // TODO: if fragments are impossible, we need to fuse some of them with the current token and check the bigger one. If that is impossible
+            // TODO: the whole thing is impossible. The selection for the fusion is the tricky part
+
+        }
+    }
+    return false
+
+}
+
+private fun samplePossible(
+    sample: String,
+    tokenPool: TokenPool,
+    remainingTokens: Set<String> = tokenPool.availableTokens.toSet(),
+    maxKeySize: Int = 4
+): Boolean {
+    if (sample.isBlank()) {
+        return true
+    }
+    val newRemainingTokens: MutableSet<String> = remainingTokens.asSequence().filter { sample.contains(it) }.toMutableSet()
+    if (newRemainingTokens.isEmpty()) {
+        return false
+    }
+
+    val keyList = determineKeyList(sample, maxKeySize)
+
+    for (key in keyList) {
+        val possibleTokens = tokenPool.tokenMap[key] ?: emptyList()
+        for (token in possibleTokens) {
+            if (!newRemainingTokens.contains(token)) {
+                continue
+            }
             if (sample.startsWith(token)) {
-                val restPossible = samplePossible(sample.substring(token.length..<sample.length), tokenPool, maxKeySize)
+                val restPossible = samplePossible(sample.substring(token.length..<sample.length), tokenPool, newRemainingTokens, maxKeySize)
                 if (!restPossible) {
                     continue
                 }
@@ -54,6 +109,18 @@ private fun samplePossible(sample: String, tokenPool: TokenPool, maxKeySize: Int
         }
     }
     return false
+}
+
+private fun determineKeyList(sample: String, maxKeySize: Int): MutableList<String> {
+    val keyList = mutableListOf<String>()
+    var currentKeySize = maxKeySize
+    while (currentKeySize > 0) {
+        if (sample.length >= currentKeySize) {
+            keyList.add(sample.substring(0..<currentKeySize))
+        }
+        currentKeySize -= 1
+    }
+    return keyList
 }
 
 private data class TokenPool(val availableTokens: List<String>, val maxKeySize: Int = 4) {
