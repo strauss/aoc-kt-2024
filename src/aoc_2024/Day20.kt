@@ -1,144 +1,74 @@
 package aoc_2024
 
 import aoc_util.*
+import kotlin.math.abs
 
 fun main() {
     val testInput = readInput2024("Day20_test")
     val testMaze = parseInputAsMultiDimArray(testInput)
-    val testResult = countPossibleCheats(testMaze)
+    val testResult = efficientSolution(testMaze, 2, 1.0)
     println("Test result: $testResult")
-//    val testPathFields = findBestSeats(testMaze, testGraph)
-//    println("Test path fields: $testPathFields")
+    val testResultRound2 = efficientSolution(testMaze, 20, 50.0)
+    println("Test result 2: $testResultRound2")
+
     println()
+
     val input = readInput2024("Day20")
     val maze = parseInputAsMultiDimArray(input)
-    val result = countPossibleCheats(maze, 100.0)
+    val result = efficientSolution(maze, 2, 100.0)
     println("Result: $result")
-//    val pathFields = findBestSeats(maze, graph)
-//    println("Path fields: $pathFields")
+    val resultRound2 = efficientSolution(maze, 20, 100.0)
+    println("Result 2: $resultRound2")
 }
 
-private fun countPossibleCheats(maze: PrimitiveMultiDimArray<Char>, atLeast: Double = 20.0): Int {
+private fun efficientSolution(maze: PrimitiveMultiDimArray<Char>, cheatTime: Int, feasibleBound: Double): Int {
+    val rowRange = 0..<maze.getDimensionSize(0)
+    val colRange = 0..<maze.getDimensionSize(1)
     val (start, end) = searchStartAndEnd(maze)
     val graph = assembleGraph(maze)
-    val (path, distance) = reduceGraph(graph, start, end)
-    println("Distance: $distance")
-    val possibleCheats = getCheatEdges(graph, path)
-    println("Possible cheats: ${possibleCheats.size}")
-    val feasibleCheats = getFeasibleCheats(graph, possibleCheats, start, end, distance)
-    println("Feasible cheats: ${feasibleCheats.size}")
-
-    return feasibleCheats.asSequence().filter { (distance - it.second) >= atLeast }.count()
-}
-
-private fun getFeasibleCheats(
-    graph: WeightedGraph<Coordinate>,
-    possibleCheats: Set<Pair<Coordinate, Coordinate>>,
-    start: Coordinate,
-    end: Coordinate,
-    regularDistance: Double
-): List<Pair<Pair<Coordinate, Coordinate>, Double>> {
-    val out = mutableListOf<Pair<Pair<Coordinate, Coordinate>, Double>>()
-    for (cheat in possibleCheats) {
-        graph.run {
-            // activate cheat
-            val (c1, c2) = cheat
-            c1.connect(c2)
-
-            // perform search
-            val dijkstra = Dijkstra(graph)
-            dijkstra.execute(start)
-            val newDistance: Double = dijkstra.distance[end.getId()] ?: Double.POSITIVE_INFINITY
-            if (newDistance < regularDistance) {
-                out.add(cheat to newDistance)
+    var out = 0
+    graph.run {
+        val dijkstra = Dijkstra(graph)
+        // We search backwards to fully exploit the true power of Dijkstra.
+        // The parent function directly leads to the end on the shortest "regular" path.
+        // The distance function gives us the cost from every vertex to the end.
+        // This information can be used for directly determining the cost efficiency of a "cheat path" without the need to brute-force anything.
+        dijkstra.execute(root = end)
+        val parent = dijkstra.parent
+        val distance = dijkstra.distance
+        var currentPosition = start
+        while (currentPosition != end) {
+            for (row in currentPosition.row - cheatTime..currentPosition.row + cheatTime) {
+                for (col in currentPosition.col - cheatTime..currentPosition.col + cheatTime) {
+                    // if too far away or not in bounds
+                    if (row !in rowRange || col !in colRange) {
+                        continue
+                    }
+                    // no walls ... we could also check if the vertex is contained in the graph ... but well, at least it saves creating the Coordinate object too early
+                    if (maze[row, col] == '#') {
+                        continue
+                    }
+                    // check if in manhattan distance
+                    val rowDistance = abs(row - currentPosition.row)
+                    val colDistance = abs(col - currentPosition.col)
+                    val mDistance = rowDistance + colDistance
+                    if (mDistance > cheatTime) {
+                        continue
+                    }
+                    val cheatPosition = Coordinate(row, col)
+                    val currentDistance = distance[currentPosition.getId()] ?: Double.POSITIVE_INFINITY
+                    val cheatDistance = (distance[cheatPosition.getId()] ?: Double.NEGATIVE_INFINITY) + mDistance - 1
+                    val timeSave = currentDistance - cheatDistance
+                    if (timeSave > feasibleBound) {
+                        out += 1
+                    }
+                }
             }
-
-            // deactivate cheat for the next run
-            c1.disconnect(c2)
+            val parentId: Int = parent[currentPosition.getId()] ?: -1
+            currentPosition = parentId.getVertex() ?: end // a bit of a hack ... at least no NPE and no endless loop
         }
     }
     return out
-}
-
-
-private fun getCheatEdges(graph: WeightedGraph<Coordinate>, path: List<Coordinate>): Set<Pair<Coordinate, Coordinate>> {
-    val result = mutableSetOf<Pair<Coordinate, Coordinate>>()
-    graph.run {
-        for (coord in path) {
-            val north = coord.getNorth()
-            if (!north.isContained()) {
-                val northOfNorth = north.getNorth()
-                if (northOfNorth.isContained()) {
-                    val cheat = coord to northOfNorth
-                    if (!result.contains(cheat.getInverse())) {
-                        result.add(cheat)
-                    }
-                }
-            }
-
-            val east = coord.getEast()
-            if (!east.isContained()) {
-                val eastOfEast = east.getEast()
-                if (eastOfEast.isContained()) {
-                    val cheat = coord to eastOfEast
-                    if (!result.contains(cheat.getInverse())) {
-                        result.add(cheat)
-                    }
-                }
-            }
-
-            val south = coord.getSouth()
-            if (!south.isContained()) {
-                val southOfSouth = south.getSouth()
-                if (southOfSouth.isContained()) {
-                    val cheat = coord to southOfSouth
-                    if (!result.contains(cheat.getInverse())) {
-                        result.add(cheat)
-                    }
-                }
-            }
-
-            val west = coord.getWest()
-            if (!west.isContained()) {
-                val westOfWest = west.getWest()
-                if (westOfWest.isContained()) {
-                    val cheat = coord to westOfWest
-                    if (!result.contains(cheat.getInverse())) {
-                        result.add(cheat)
-                    }
-                }
-            }
-        }
-    }
-    return result
-}
-
-private fun reduceGraph(graph: WeightedGraph<Coordinate>, start: Coordinate, end: Coordinate): Pair<List<Coordinate>, Double> {
-    val dijkstra = Dijkstra(graph)
-    dijkstra.execute(start)
-    val distance = graph.run {
-        val maxCost = dijkstra.distance[end.getId()] ?: Double.POSITIVE_INFINITY
-        for (coordinate in vertexIterator()) {
-            if ((dijkstra.distance[coordinate.getId()] ?: Double.POSITIVE_INFINITY) > maxCost) {
-                coordinate.isolate()
-            }
-        }
-        maxCost
-    }
-    return extractPath(dijkstra, end) to distance
-}
-
-private fun extractPath(dijkstra: Dijkstra<Coordinate>, end: Coordinate): List<Coordinate> {
-    val result = mutableListOf<Coordinate>()
-    dijkstra.graph.run {
-        var current: Coordinate? = end
-        while (current != null) {
-            result.add(current)
-            val parentId = dijkstra.parent[current.getId()]
-            current = parentId?.getVertex()
-        }
-    }
-    return result.reversed()
 }
 
 private fun searchStartAndEnd(maze: PrimitiveMultiDimArray<Char>): Pair<Coordinate, Coordinate> {
