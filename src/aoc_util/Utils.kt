@@ -184,3 +184,12 @@ fun main() {
 
     println(16L.asOctalString())
 }
+
+data class Coordinate(val row: Int, val col: Int) {
+    fun getNorth() = Coordinate(row - 1, col)
+    fun getEast() = Coordinate(row, col + 1)
+    fun getSouth() = Coordinate(row + 1, col)
+    fun getWest() = Coordinate(row, col - 1)
+}
+
+fun <T> Pair<T, T>.getInverse() = this.second to this.first

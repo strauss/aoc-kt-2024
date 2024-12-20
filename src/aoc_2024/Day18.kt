@@ -1,6 +1,7 @@
 package aoc_2024
 
 import aoc_util.BitSetAdjacencyBasedGraph
+import aoc_util.Coordinate
 import aoc_util.readInput2024
 
 fun main() {
@@ -102,11 +103,4 @@ private fun createUndirectedNeighborGraph(height: Int, width: Int): BitSetAdjace
         }
     }
     return graph
-}
-
-private data class Coordinate(val row: Int, val col: Int) {
-    fun getNorth() = Coordinate(row - 1, col)
-    fun getEast() = Coordinate(row, col + 1)
-    fun getSouth() = Coordinate(row + 1, col)
-    fun getWest() = Coordinate(row, col - 1)
 }
