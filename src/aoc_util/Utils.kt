@@ -190,6 +190,36 @@ data class Coordinate(val row: Int, val col: Int) {
     fun getEast() = Coordinate(row, col + 1)
     fun getSouth() = Coordinate(row + 1, col)
     fun getWest() = Coordinate(row, col - 1)
+
+    fun manhattanDistance(other: Coordinate): Int {
+        val rowDistance = abs(row - other.row)
+        val colDistance = abs(col - other.col)
+        return rowDistance + colDistance
+    }
+
+    operator fun plus(movement: Movement) = Coordinate(row + movement.deltaRow, col + movement.deltaCol)
+
+    operator fun plus(movements: List<Movement>): Coordinate {
+        var deltaRow = 0
+        var deltaCol = 0
+        for (movement in movements) {
+            deltaRow += movement.deltaRow
+            deltaCol += movement.deltaCol
+        }
+        return Coordinate(row + deltaRow, col + deltaCol)
+    }
+}
+
+enum class Movement(val deltaRow: Int, val deltaCol: Int) {
+    NORTH(-1, 0),
+    NORTH_EAST(-1, 1),
+    EAST(0, 1),
+    SOUTH_EAST(1, 1),
+    SOUTH(1, 0),
+    SOUTH_WEST(1, -1),
+    WEST(0, -1),
+    NORTH_WEST(-1, -1),
+    STAY(0, 0)
 }
 
 fun <T> Pair<T, T>.getInverse() = this.second to this.first
