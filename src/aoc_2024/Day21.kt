@@ -17,7 +17,7 @@ fun main() {
     println("Result: $result")
     // Puzzle result would be 25
     val start = System.currentTimeMillis()
-    val advancedResult = sumOfComplexities(input, 9)
+    val advancedResult = sumOfComplexities(input, 11)
     val duration = System.currentTimeMillis() - start
     println("Result: $advancedResult")
     println("Duration: ${duration.toDouble() / 1000.0} s")
@@ -43,23 +43,22 @@ private fun complexityOf(code: String, robotLayers: Int): Long {
         val nextLayer: List<List<DirectionButton>> = directionPadDirectionSequences(currentResult)
         val nextMinChunks: Int = nextLayer.asSequence().map { it.countChunks() }.min()
         currentResult = nextLayer.filter { it.countChunks() == nextMinChunks }.minByOrNull { it.size }!!
-        println("Best solution for layer$i: ${currentResult.size}")
+//        println("Best solution for layer$i: ${currentResult.size}")
     }
 
     return currentResult.size * numericPart
 }
 
-private fun combine(buttonSequenceCombinations: List<List<List<DirectionButton>>>): List<List<DirectionButton>> {
+private fun combine(buttonSequenceCombinations: List<List<List<DirectionButton>>>) = combineI(buttonSequenceCombinations)
+
+private fun combineR(buttonSequenceCombinations: List<List<List<DirectionButton>>>): List<List<DirectionButton>> {
     if (buttonSequenceCombinations.isEmpty()) {
         return listOf(emptyList())
     }
+    val remainderResult: List<List<DirectionButton>> = combineR(buttonSequenceCombinations.subList(1, buttonSequenceCombinations.size))
     val result = mutableListOf<List<DirectionButton>>()
-
-    val remainderResult: List<List<DirectionButton>> = combine(buttonSequenceCombinations.subList(1, buttonSequenceCombinations.size))
-
     // focus on optimal solutions
-    val remainderMinChunks: Int = remainderResult.asSequence().map { it.countChunks() }.min()
-    val relevantRemainder = remainderResult.filter { it.countChunks() == remainderMinChunks }.minByOrNull { it.size }!!
+    val relevantRemainder: List<DirectionButton> = extractRelevantTail(remainderResult)
 
     val combination: List<List<DirectionButton>> = buttonSequenceCombinations[0]
     for (sequence: List<DirectionButton> in combination) {
@@ -71,6 +70,47 @@ private fun combine(buttonSequenceCombinations: List<List<List<DirectionButton>>
     }
 
     return result
+}
+
+private fun combineI(buttonSequenceCombinations: List<List<List<DirectionButton>>>): List<List<DirectionButton>> {
+    if (buttonSequenceCombinations.isEmpty()) {
+        return listOf(emptyList())
+    }
+    var currentTail: List<List<DirectionButton>> = listOf(emptyList())
+    for (i in buttonSequenceCombinations.lastIndex downTo 0) {
+        val relevantTail = extractRelevantTail(currentTail)
+        val currentResult = mutableListOf<List<DirectionButton>>()
+        val currentCombination = buttonSequenceCombinations[i]
+        for (sequence: List<DirectionButton> in currentCombination) {
+            val resultEntry = mutableListOf<DirectionButton>()
+            resultEntry.addAll(sequence)
+            resultEntry.add(DirectionButton.ENTER_DIRECTION)
+            resultEntry.addAll(relevantTail)
+            currentResult.add(resultEntry)
+        }
+        currentTail = currentResult
+    }
+    return currentTail
+}
+
+private fun extractRelevantTailOld(currentTail: List<List<DirectionButton>>): List<DirectionButton> {
+    val currentTailMinChunks: Int = currentTail.asSequence().map { it.countChunks() }.min()
+    val relevantTail = if (currentTail.size == 1) currentTail.first() else
+        currentTail.filter { it.countChunks() == currentTailMinChunks }.minByOrNull { it.size }!!
+    return relevantTail
+}
+
+private fun extractRelevantTail(currentTail: List<List<DirectionButton>>): List<DirectionButton> {
+    var currentTailMinChunks = Int.MAX_VALUE
+    var bestTail = currentTail.first()
+    for (element in currentTail) {
+        val elementChunks = element.countChunks()
+        if (elementChunks < currentTailMinChunks) {
+            currentTailMinChunks = elementChunks
+            bestTail = element
+        }
+    }
+    return bestTail
 }
 
 private fun <T> List<T>.countChunks(): Int {
