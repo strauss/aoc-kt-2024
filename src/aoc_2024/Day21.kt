@@ -55,7 +55,7 @@ private fun determineMinButtonPressesQuickly(possibleNumpads: List<List<Directio
         val nextLayerSegmentCount: MutableMap<List<DirectionButton>, Long> = HashMap()
         for ((segment, count) in currentSegmentCount) {
             val directionPadDirectionSequences = directionPadDirectionSequences(segment)
-            val movesForSegment: List<DirectionButton> = directionPadDirectionSequences.minByOrNull { it.size }!!
+            val movesForSegment: List<DirectionButton> = directionPadDirectionSequences.minByOrNull { it.countChunks() }!!
             val nextLayerSegments = movesForSegment.split(DirectionButton.ENTER_DIRECTION, inclusive = true, keepTrailingEmptyList = false)
             for (nextLayerSegment in nextLayerSegments) {
                 val currentCount = nextLayerSegmentCount[nextLayerSegment] ?: 0L
