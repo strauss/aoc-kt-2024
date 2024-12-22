@@ -12,6 +12,12 @@ fun readInput2023(name: String) = internalReadInput(name, 2023)
 
 fun readInput2024(name: String) = internalReadInput(name, 2024)
 
+fun main() {
+    val list = listOf(1, 3, 989, 3, 3, 9098, 3, 0, 3)
+    println(list)
+    println(list.split(3, inclusive = true, keepTrailingEmptyList = false))
+}
+
 /**
  * Reads lines from the given input txt file.
  */
@@ -60,7 +66,7 @@ fun String.extractSchlong(): List<Long> {
 }
 
 /**
- * Pairs up entries in a list. If the list has an odd size, the last element is dropped.
+ * Pairs up entries in [this] list. If [this] list has an odd size, the last element is dropped. If [this] list is empty, an empty list is returned.
  */
 fun <T> List<T>.createPairs(): List<Pair<T, T>> {
     val out = ArrayList<Pair<T, T>>()
@@ -73,6 +79,71 @@ fun <T> List<T>.createPairs(): List<Pair<T, T>> {
         }
     }
     return out
+}
+
+/**
+ * Creates a list of transition pairs from [this] list. Every element is paired up with its successor. Each element appears twice in the result
+ * list, once on each side of a pair in the result list. If [this] list's size is less than 2, [this] list has no transitions an empty list is the
+ * result.
+ */
+fun <T> List<T>.createTransitionPairs(): List<Pair<T, T>> {
+    val out = ArrayList<Pair<T, T>>()
+    val iterator = iterator()
+    if (iterator.hasNext()) {
+        var current = iterator.next()
+        while (iterator.hasNext()) {
+            val next = iterator.next()
+            out.add(current to next)
+            current = next
+        }
+    }
+    return out
+}
+
+/**
+ * Splits the [this] list at all positions containing the given [element]. If the element is not contained in [this] list, the result will be a list,
+ * containing a copy of [this] list. If [inclusive] is true, each segment will contain the given [element] in the last position, except for the last
+ * segment. If the last element of [this] list is the given [element], the last segment will be an empty list without the given [element]. If
+ * [keepTrailingEmptyList] is set to false, a potential trailing empty list will be omitted.
+ */
+fun <T> List<T>.split(element: T, inclusive: Boolean = false, keepTrailingEmptyList: Boolean = true): List<List<T>> {
+    val out = ArrayList<List<T>>()
+    var currentSegment = ArrayList<T>()
+    for (e in this) {
+        if (e == element) {
+            if (inclusive) {
+                currentSegment.add(e)
+            }
+            out.add(currentSegment)
+            currentSegment = ArrayList()
+        } else {
+            currentSegment.add(e)
+        }
+    }
+    if (keepTrailingEmptyList || currentSegment.isNotEmpty()) {
+        out.add(currentSegment)
+    }
+    return out
+}
+
+/**
+ * Counts chunks of repeating entries in [this] list.
+ */
+fun <T> List<T>.countChunks(): Int {
+    if (isEmpty()) {
+        return 0
+    }
+    val iterator = iterator()
+    var previous = iterator.next()
+    var chunks = 1
+    while (iterator.hasNext()) {
+        val current = iterator.next()
+        if (previous != current) {
+            chunks += 1
+        }
+        previous = current
+    }
+    return chunks
 }
 
 data class IntAndLocation(val number: Int, val row: Int, val range: IntRange)
@@ -177,12 +248,6 @@ fun Long.asOctalString(): String {
         out.append("-")
     }
     return out.toString().reversed()
-}
-
-fun main() {
-    println("11".asOctalLong())
-
-    println(16L.asOctalString())
 }
 
 data class Coordinate(val row: Int, val col: Int) {
