@@ -17,6 +17,9 @@ fun main() {
     val duration = System.currentTimeMillis() - start
     println("Result part 2($robotLayers): $advancedResult")
     println("Duration part 2: ${duration.toDouble() / 1000.0} s")
+    // Hopefully the correct test value for robot layers 25 is 154115708116294
+    val testResult2 = sumOfComplexities(testInput, robotLayers)
+    println("Test result part 2: $testResult2")
 }
 
 private fun sumOfComplexities(inputs: List<String>, robotLayers: Int = 2): Pair<Long, Long> {
@@ -32,17 +35,18 @@ private fun sumOfComplexities(inputs: List<String>, robotLayers: Int = 2): Pair<
 
 private fun complexityOf(code: String, robotLayers: Int): Pair<Long, Long> {
     val numericPart = code.split('A')[0].toLong()
-    val numpadSequences: List<List<DirectionButton>> = buttonSequences(code) // these tend to be optimal already
-    val numpadMinChunks = numpadSequences.asSequence().map { it.countChunks() }.min()
-    val bestNumpad = numpadSequences.filter { it.countChunks() == numpadMinChunks }.minByOrNull { it.size }!!
+    val possibleNumpads: List<List<DirectionButton>> = buttonSequences(code) // these tend to be optimal already
 
     val minButtonPresses = 0//determineMinButtonPresses(bestNumpad, robotLayers)
-    val minButtonPressesQuickly = determineMinButtonPressesQuickly(bestNumpad, robotLayers)
+    val minButtonPressesQuickly = determineMinButtonPressesQuickly(possibleNumpads, robotLayers)
 
     return (minButtonPresses * numericPart) to (minButtonPressesQuickly * numericPart)
 }
 
-private fun determineMinButtonPressesQuickly(bestNumpad: List<DirectionButton>, robotLayers: Int): Long {
+private fun determineMinButtonPressesQuickly(possibleNumpads: List<List<DirectionButton>>, robotLayers: Int): Long {
+    val numpadMinChunks = possibleNumpads.asSequence().map { it.countChunks() }.min()
+    val bestNumpad = possibleNumpads.filter { it.countChunks() == numpadMinChunks }.minByOrNull { it.size }!!
+
     val numpadSegmentation = bestNumpad.split(DirectionButton.ENTER_DIRECTION, inclusive = true, keepTrailingEmptyList = false)
     val numpadSegmentCount: MutableMap<List<DirectionButton>, Long> = countSegments(numpadSegmentation)
 
@@ -51,8 +55,7 @@ private fun determineMinButtonPressesQuickly(bestNumpad: List<DirectionButton>, 
         val nextLayerSegmentCount: MutableMap<List<DirectionButton>, Long> = HashMap()
         for ((segment, count) in currentSegmentCount) {
             val directionPadDirectionSequences = directionPadDirectionSequences(segment)
-            val movesForSegment: List<DirectionButton> =
-                directionPadDirectionSequences.first() // there is only one ... ever
+            val movesForSegment: List<DirectionButton> = directionPadDirectionSequences.minByOrNull { it.size }!!
             val nextLayerSegments = movesForSegment.split(DirectionButton.ENTER_DIRECTION, inclusive = true, keepTrailingEmptyList = false)
             for (nextLayerSegment in nextLayerSegments) {
                 val currentCount = nextLayerSegmentCount[nextLayerSegment] ?: 0L
@@ -62,43 +65,7 @@ private fun determineMinButtonPressesQuickly(bestNumpad: List<DirectionButton>, 
         currentSegmentCount = nextLayerSegmentCount
     }
 
-    var result = 0L
-    for (currentEntry in currentSegmentCount.entries) {
-        result += currentEntry.key.size * currentEntry.value
-    }
-    return result
-
-//    return currentSegmentCount.entries.asSequence().map { it.key.size.toLong() * it.value }.sum()
-}
-
-
-private fun determineMinButtonPressesQuicklyFirstTry(bestNumpad: List<DirectionButton>, robotLayers: Int): Long {
-    val bestNumpadTransitions = (
-//            emptyList<DirectionButton>() + DirectionButton.ENTER_DIRECTION +
-            bestNumpad).createTransitionPairs()
-    val numpadTransitionCount: MutableMap<Pair<DirectionButton, DirectionButton>, Long> = countTransitions(bestNumpadTransitions)
-
-    var currentTransitionCount = numpadTransitionCount
-    var pressEnterButtonAgain = 0L
-    for (i in 1..robotLayers) {
-        val nextLayerTransitionCount: MutableMap<Pair<DirectionButton, DirectionButton>, Long> = HashMap()
-        for ((transition, count) in currentTransitionCount.entries) {
-            val movesForTransition: List<DirectionButton> =
-                directionPadDirectionSequences(listOf(transition.first, transition.second), false).first() // there is only one ... ever
-            if (movesForTransition.size == 1 && movesForTransition.first() == DirectionButton.ENTER_DIRECTION) {
-                // special case: just press the button again ... but still, it is one button press
-                pressEnterButtonAgain += count
-            }
-            val nextLayerTransitions = movesForTransition.createTransitionPairs()
-            for (nextLayerTransition in nextLayerTransitions) {
-                val currentCount = nextLayerTransitionCount[nextLayerTransition] ?: 0
-                nextLayerTransitionCount[nextLayerTransition] =
-                    currentCount + count // this is actually a multiplication like "finalCurrentCount * newCount"
-            }
-        }
-        currentTransitionCount = nextLayerTransitionCount
-    }
-    return currentTransitionCount.values.sum() + pressEnterButtonAgain
+    return currentSegmentCount.entries.asSequence().map { it.key.size.toLong() * it.value }.sum()
 }
 
 private fun countSegments(segments: List<List<DirectionButton>>, countBy: Long = 1L): MutableMap<List<DirectionButton>, Long> {
@@ -110,16 +77,9 @@ private fun countSegments(segments: List<List<DirectionButton>>, countBy: Long =
     return out
 }
 
-private fun countTransitions(bestNumpadTransitions: List<Pair<DirectionButton, DirectionButton>>): MutableMap<Pair<DirectionButton, DirectionButton>, Long> {
-    val numpadTransitionCount: MutableMap<Pair<DirectionButton, DirectionButton>, Long> = HashMap()
-    for (transition in bestNumpadTransitions) {
-        val currentCount = numpadTransitionCount[transition] ?: 0
-        numpadTransitionCount[transition] = currentCount + 1L
-    }
-    return numpadTransitionCount
-}
-
-private fun determineMinButtonPresses(bestNumpad: List<DirectionButton>, robotLayers: Int): Int {
+private fun determineMinButtonPresses(possibleNumpads: List<List<DirectionButton>>, robotLayers: Int): Int {
+    val numpadMinChunks = possibleNumpads.asSequence().map { it.countChunks() }.min()
+    val bestNumpad = possibleNumpads.filter { it.countChunks() == numpadMinChunks }.minByOrNull { it.size }!!
     var currentResult = bestNumpad
     for (i in 1..robotLayers) {
 //        println("Computing layer $i...")
@@ -238,16 +198,16 @@ private fun directionPadDirectionSequences(buttons: List<DirectionButton>, start
     actualButtons.addAll(buttons)
     val result = mutableListOf<List<List<DirectionButton>>>()
     for (i in 1..<actualButtons.size) {
-        result.add(listOf(directionButtonMovements(actualButtons[i - 1], actualButtons[i])))
+        result.add(directionButtonMovements(actualButtons[i - 1], actualButtons[i]))
     }
     return combine(result)
 }
 
-private fun directionButtonMovements(from: DirectionButton, to: DirectionButton): List<DirectionButton> {
-    return DirectionButton.OPTIMAL_MOVE_MAP[from to to] ?: emptyList()
+private fun directionButtonMovementsNew(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
+    return listOf(DirectionButton.OPTIMAL_MOVE_MAP[from to to] ?: emptyList())
 }
 
-private fun directionButtonMovementsOld(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
+private fun directionButtonMovements(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
     val optimal: Int = from.coordinate.manhattanDistance(to.coordinate)
     val output = mutableListOf<List<DirectionButton>>()
     val iterator = CombinatorialIterator(DirectionButton.allWithoutEnter(), optimal)
