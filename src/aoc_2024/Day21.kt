@@ -165,12 +165,16 @@ private fun directionPadDirectionSequences(buttons: List<DirectionButton>): List
     actualButtons.addAll(buttons)
     val result = mutableListOf<List<List<DirectionButton>>>()
     for (i in 1..<actualButtons.size) {
-        result.add(directionalButtonMovements(actualButtons[i - 1], actualButtons[i]))
+        result.add(directionButtonMovements(actualButtons[i - 1], actualButtons[i]))
     }
     return combine(result)
 }
 
-private fun directionalButtonMovements(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
+private fun directionButtonMovements(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
+    return listOf(DirectionButton.OPTIMAL_MOVE_MAP[from to to] ?: emptyList())
+}
+
+private fun directionButtonMovementsOld(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
     val optimal: Int = from.coordinate.manhattanDistance(to.coordinate)
     val output = mutableListOf<List<DirectionButton>>()
     val iterator = CombinatorialIterator(DirectionButton.allWithoutEnter(), optimal)
@@ -276,6 +280,29 @@ enum class DirectionButton(val char: Char, val coordinate: Coordinate, val delta
             LEFT.char to LEFT,
             DOWN.char to DOWN,
             RIGHT.char to RIGHT
+        )
+
+        val OPTIMAL_MOVE_MAP: Map<Pair<DirectionButton, DirectionButton>, List<DirectionButton>> = mapOf(
+            ENTER_DIRECTION to UP to listOf(LEFT),
+            ENTER_DIRECTION to RIGHT to listOf(DOWN),
+            ENTER_DIRECTION to DOWN to listOf(DOWN, LEFT),
+            ENTER_DIRECTION to LEFT to listOf(DOWN, LEFT, LEFT),
+            UP to ENTER_DIRECTION to listOf(RIGHT),
+            UP to RIGHT to listOf(DOWN, RIGHT),
+            UP to DOWN to listOf(DOWN),
+            UP to LEFT to listOf(DOWN, LEFT),
+            RIGHT to ENTER_DIRECTION to listOf(UP),
+            RIGHT to UP to listOf(UP, LEFT),
+            RIGHT to DOWN to listOf(LEFT),
+            RIGHT to LEFT to listOf(LEFT, LEFT),
+            DOWN to ENTER_DIRECTION to listOf(UP, RIGHT),
+            DOWN to UP to listOf(UP),
+            DOWN to RIGHT to listOf(RIGHT),
+            DOWN to LEFT to listOf(LEFT),
+            LEFT to ENTER_DIRECTION to listOf(RIGHT, RIGHT, UP),
+            LEFT to UP to listOf(RIGHT, UP),
+            LEFT to RIGHT to listOf(RIGHT, RIGHT),
+            LEFT to DOWN to listOf(RIGHT)
         )
 
         fun allWithoutEnter() = listOf(UP, RIGHT, LEFT, DOWN)
