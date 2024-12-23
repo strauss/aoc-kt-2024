@@ -15,7 +15,7 @@ fun readInput2024(name: String) = internalReadInput(name, 2024)
 fun main() {
     val list = listOf(1, 3, 989, 3, 3, 9098, 3, 0, 3)
     println(list)
-    println(list.split(3, inclusive = true, keepTrailingEmptyList = false))
+    println(list.startsWith(listOf(1, 3, 3)))
 }
 
 /**
@@ -144,6 +144,46 @@ fun <T> List<T>.countChunks(): Int {
         previous = current
     }
     return chunks
+}
+
+fun <T> List<T>.containsSublist(potentialSublist: List<T>): Boolean {
+    if (potentialSublist.size > size) {
+        return false
+    }
+    if (potentialSublist.isEmpty()) {
+        return true
+    }
+    outer@ for (i in indices) {
+        for (j in potentialSublist.indices) {
+            if (i + j > lastIndex) {
+                return false
+            }
+            if (this[i + j] != potentialSublist[j]) {
+                continue@outer
+            }
+        }
+        return true
+    }
+    return false
+}
+
+fun <T> List<T>.startsWith(startList: List<T>): Boolean {
+    if (startList.size > size) {
+        return false
+    }
+    if (startList.isEmpty()) {
+        return true
+    }
+    val iterator = iterator()
+    val otherIterator = startList.iterator()
+    while (otherIterator.hasNext()) {
+        val myNext = iterator.next()
+        val otherNext = otherIterator.next()
+        if (myNext != otherNext) {
+            return false
+        }
+    }
+    return true
 }
 
 data class IntAndLocation(val number: Int, val row: Int, val range: IntRange)
