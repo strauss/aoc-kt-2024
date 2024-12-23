@@ -80,7 +80,7 @@ private fun bruteForce(graph: BitSetAdjacencyBasedGraph<String>, edges: List<Bit
         graphCopy.run {
             currentCandidate.forEach { it.alpha.disconnect(it.omega) }
         }
-        val weakComponents = weakComponents2(graphCopy)
+        val weakComponents = weakComponents(graphCopy)
         if (weakComponents.size == 2) {
             result = weakComponents
             println(currentCandidate)
@@ -91,7 +91,7 @@ private fun bruteForce(graph: BitSetAdjacencyBasedGraph<String>, edges: List<Bit
 }
 
 
-private fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V>> {
+fun <V> weakComponents(graph: BitSetAdjacencyBasedGraph<V>): List<List<V>> {
     val visitor = graph.WeakComponentVisitor()
     graph.run {
         search(BitSetAdjacencyBasedGraph.SearchType.DFS, visitor, null)
