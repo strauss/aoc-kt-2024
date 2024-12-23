@@ -36,6 +36,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         return id
     }
 
+    fun countVertices() = vertexToIdMap.size
+
     fun V.getId(): Int = vertexToIdMap[this] ?: -1
 
     fun V.connect(vertex: V) {
@@ -98,11 +100,16 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         }
     }
 
+    fun V.countAdjecencies(): Int = idToAdjacencies[this.getId()]?.size ?: 0
+
     fun V.isolate() = this.adjacencies().forEach { disconnect(it) }
 
 
     fun V.isConnectedWith(vertex: V): Boolean = idToAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
             (!directed && idToAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
+
+    fun V.isConnectedWithAll(vertices: Set<V>): Boolean = vertices.all { it.isConnectedWith(this) }
+
 
     abstract inner class SearchVisitor {
         open fun visitRoot(root: V) {
