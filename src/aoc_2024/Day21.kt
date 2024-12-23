@@ -44,8 +44,7 @@ private fun complexityOf(code: String, robotLayers: Int): Pair<Long, Long> {
 }
 
 private fun determineMinButtonPressesQuickly(possibleNumpads: List<List<DirectionButton>>, robotLayers: Int): Long {
-    val numpadMinChunks = possibleNumpads.asSequence().map { it.countChunks() }.min()
-    val bestNumpad = possibleNumpads.filter { it.countChunks() == numpadMinChunks }.minByOrNull { it.size }!!
+    val bestNumpad = determineBestOption(possibleNumpads)
 
     val numpadSegmentation = bestNumpad.split(DirectionButton.ENTER_DIRECTION, inclusive = true, keepTrailingEmptyList = false)
     val numpadSegmentCount: MutableMap<List<DirectionButton>, Long> = countSegments(numpadSegmentation)
@@ -55,7 +54,8 @@ private fun determineMinButtonPressesQuickly(possibleNumpads: List<List<Directio
         val nextLayerSegmentCount: MutableMap<List<DirectionButton>, Long> = HashMap()
         for ((segment, count) in currentSegmentCount) {
             val directionPadDirectionSequences = directionPadDirectionSequences(segment)
-            val movesForSegment: List<DirectionButton> = directionPadDirectionSequences.minByOrNull { it.countChunks() }!!
+//            val movesForSegment: List<DirectionButton> = directionPadDirectionSequences.minByOrNull { it.countChunks() }!!
+            val movesForSegment: List<DirectionButton> = determineBestOption(directionPadDirectionSequences)
             val nextLayerSegments = movesForSegment.split(DirectionButton.ENTER_DIRECTION, inclusive = true, keepTrailingEmptyList = false)
             for (nextLayerSegment in nextLayerSegments) {
                 val currentCount = nextLayerSegmentCount[nextLayerSegment] ?: 0L
@@ -91,6 +91,19 @@ private fun determineMinButtonPresses(possibleNumpads: List<List<DirectionButton
     val minButtonPresses = currentResult.size
     return minButtonPresses
 }
+
+private fun determineBestOption(possibleOptions: List<List<DirectionButton>>): List<DirectionButton> {
+    val minLeft = possibleOptions.asSequence().map { it.countLeft() }.min()
+    val remainderMinLeft = possibleOptions.filter { it.countLeft() == minLeft }
+    if (remainderMinLeft.size == 1) {
+        return remainderMinLeft.first()
+    }
+    val minChunks = remainderMinLeft.asSequence().map { it.countChunks() }.min()
+    val bestNumpad = remainderMinLeft.filter { it.countChunks() == minChunks }.minByOrNull { it.size }!!
+    return bestNumpad
+}
+
+private fun List<DirectionButton>.countLeft() = this.asSequence().filter { it == DirectionButton.LEFT }.count()
 
 private fun combine(buttonSequenceCombinations: List<List<List<DirectionButton>>>) = combineI(buttonSequenceCombinations)
 
