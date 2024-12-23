@@ -44,8 +44,28 @@ private fun complexityOf(code: String, robotLayers: Int): Pair<Long, Long> {
 }
 
 private fun determineMinButtonPressesQuickly(possibleNumpads: List<List<DirectionButton>>, robotLayers: Int): Long {
+    println()
     val bestNumpad = determineBestOption(possibleNumpads)
 
+    val bestNumpadProcessed = processSingleNumpad(bestNumpad, robotLayers)
+    val bestNumpadResult = bestNumpadProcessed.entries.asSequence().map { it.key.size.toLong() * it.value }.sum()
+    println("Best numpad: $bestNumpadResult")
+
+    for (possibleNumpad in possibleNumpads) {
+        if (possibleNumpad != bestNumpad) {
+            val currentNumpadCount = processSingleNumpad(possibleNumpad, robotLayers)
+            val currentNumpadResult = currentNumpadCount.entries.asSequence().map { it.key.size.toLong() * it.value }.sum()
+            println("Alternative numpad was ${if (currentNumpadResult <= bestNumpadResult) "equal or better" else "worse"}: $currentNumpadResult")
+        }
+    }
+
+    return bestNumpadResult
+}
+
+private fun processSingleNumpad(
+    bestNumpad: List<DirectionButton>,
+    robotLayers: Int
+): MutableMap<List<DirectionButton>, Long> {
     val numpadSegmentation = bestNumpad.split(DirectionButton.ENTER_DIRECTION, inclusive = true, keepTrailingEmptyList = false)
     val numpadSegmentCount: MutableMap<List<DirectionButton>, Long> = countSegments(numpadSegmentation)
 
@@ -64,8 +84,7 @@ private fun determineMinButtonPressesQuickly(possibleNumpads: List<List<Directio
         }
         currentSegmentCount = nextLayerSegmentCount
     }
-
-    return currentSegmentCount.entries.asSequence().map { it.key.size.toLong() * it.value }.sum()
+    return currentSegmentCount
 }
 
 private fun countSegments(segments: List<List<DirectionButton>>, countBy: Long = 1L): MutableMap<List<DirectionButton>, Long> {
@@ -216,11 +235,11 @@ private fun directionPadDirectionSequences(buttons: List<DirectionButton>, start
     return combine(result)
 }
 
-private fun directionButtonMovementsNew(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
+private fun directionButtonMovements(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
     return listOf(DirectionButton.OPTIMAL_MOVE_MAP[from to to] ?: emptyList())
 }
 
-private fun directionButtonMovements(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
+private fun directionButtonMovementsOld(from: DirectionButton, to: DirectionButton): List<List<DirectionButton>> {
     val optimal: Int = from.coordinate.manhattanDistance(to.coordinate)
     val output = mutableListOf<List<DirectionButton>>()
     val iterator = CombinatorialIterator(DirectionButton.allWithoutEnter(), optimal)
@@ -241,6 +260,10 @@ private fun directionButtonMovements(from: DirectionButton, to: DirectionButton)
 }
 
 private fun numberButtonMovements(from: NumberButton, to: NumberButton): List<List<DirectionButton>> {
+    return listOf(NumberButton.OPTIMAL_MOVE_MAP[from to to] ?: emptyList())
+}
+
+private fun numberButtonMovementsOld(from: NumberButton, to: NumberButton): List<List<DirectionButton>> {
     val optimal: Int = from.coordinate.manhattanDistance(to.coordinate)
     val output = mutableListOf<List<DirectionButton>>()
     val iterator = CombinatorialIterator(DirectionButton.allWithoutEnter(), optimal)
@@ -301,6 +324,134 @@ enum class NumberButton(val char: Char, val coordinate: Coordinate) {
             EIGHT.char to EIGHT,
             NINE.char to NINE,
         )
+        val OPTIMAL_MOVE_MAP: Map<Pair<NumberButton, NumberButton>, List<DirectionButton>> = mapOf(
+            ENTER_NUMBER to ZERO to listOf(DirectionButton.LEFT),
+            ENTER_NUMBER to ONE to listOf(DirectionButton.UP, DirectionButton.LEFT, DirectionButton.LEFT),
+            ENTER_NUMBER to TWO to listOf(DirectionButton.LEFT, DirectionButton.UP),
+            ENTER_NUMBER to THREE to listOf(DirectionButton.UP),
+            ENTER_NUMBER to FOUR to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.LEFT, DirectionButton.LEFT),
+            ENTER_NUMBER to FIVE to listOf(DirectionButton.LEFT, DirectionButton.UP, DirectionButton.UP),
+            ENTER_NUMBER to SIX to listOf(DirectionButton.UP, DirectionButton.UP),
+            ENTER_NUMBER to SEVEN to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.UP, DirectionButton.LEFT, DirectionButton.LEFT),
+            ENTER_NUMBER to EIGHT to listOf(DirectionButton.LEFT, DirectionButton.UP, DirectionButton.UP, DirectionButton.UP),
+            ENTER_NUMBER to NINE to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.UP),
+
+            ZERO to ENTER_NUMBER to listOf(DirectionButton.RIGHT),
+            ZERO to ONE to listOf(DirectionButton.UP, DirectionButton.LEFT),
+            ZERO to TWO to listOf(DirectionButton.UP),
+            ZERO to THREE to listOf(DirectionButton.UP, DirectionButton.RIGHT),
+            ZERO to FOUR to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.LEFT),
+            ZERO to FIVE to listOf(DirectionButton.UP, DirectionButton.UP),
+            ZERO to SIX to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.RIGHT),
+            ZERO to SEVEN to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.UP, DirectionButton.LEFT),
+            ZERO to EIGHT to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.UP),
+            ZERO to NINE to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.UP, DirectionButton.RIGHT),
+
+            ONE to ENTER_NUMBER to listOf(DirectionButton.RIGHT, DirectionButton.RIGHT, DirectionButton.DOWN),
+            ONE to ZERO to listOf(DirectionButton.RIGHT, DirectionButton.DOWN),
+            ONE to TWO to listOf(DirectionButton.RIGHT),
+            ONE to THREE to listOf(DirectionButton.RIGHT, DirectionButton.RIGHT),
+            ONE to FOUR to listOf(DirectionButton.UP),
+            ONE to FIVE to listOf(DirectionButton.UP, DirectionButton.RIGHT),
+            ONE to SIX to listOf(DirectionButton.UP, DirectionButton.RIGHT, DirectionButton.RIGHT),
+            ONE to SEVEN to listOf(DirectionButton.UP, DirectionButton.UP),
+            ONE to EIGHT to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.RIGHT),
+            ONE to NINE to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.RIGHT, DirectionButton.RIGHT),
+
+            TWO to ENTER_NUMBER to listOf(DirectionButton.DOWN, DirectionButton.RIGHT),
+            TWO to ZERO to listOf(DirectionButton.DOWN),
+            TWO to ONE to listOf(DirectionButton.LEFT),
+            TWO to THREE to listOf(DirectionButton.RIGHT),
+            TWO to FOUR to listOf(DirectionButton.LEFT, DirectionButton.UP),
+            TWO to FIVE to listOf(DirectionButton.UP),
+            TWO to SIX to listOf(DirectionButton.UP, DirectionButton.RIGHT),
+            TWO to SEVEN to listOf(DirectionButton.LEFT, DirectionButton.UP, DirectionButton.UP),
+            TWO to EIGHT to listOf(DirectionButton.UP, DirectionButton.UP),
+            TWO to NINE to listOf(DirectionButton.UP, DirectionButton.UP, DirectionButton.RIGHT),
+
+            THREE to ENTER_NUMBER to listOf(DirectionButton.DOWN),
+            THREE to ZERO to listOf(DirectionButton.LEFT, DirectionButton.DOWN),
+            THREE to ONE to listOf(DirectionButton.LEFT, DirectionButton.LEFT),
+            THREE to TWO to listOf(DirectionButton.LEFT),
+            THREE to FOUR to listOf(DirectionButton.LEFT, DirectionButton.LEFT, DirectionButton.UP),
+            THREE to FIVE to listOf(DirectionButton.LEFT, DirectionButton.UP),
+            THREE to SIX to listOf(DirectionButton.UP),
+            THREE to SEVEN to listOf(DirectionButton.LEFT, DirectionButton.LEFT, DirectionButton.UP, DirectionButton.UP),
+            THREE to EIGHT to listOf(DirectionButton.LEFT, DirectionButton.UP, DirectionButton.UP),
+            THREE to NINE to listOf(DirectionButton.UP, DirectionButton.UP),
+
+            FOUR to ENTER_NUMBER to listOf(DirectionButton.RIGHT, DirectionButton.RIGHT, DirectionButton.DOWN, DirectionButton.DOWN),
+            FOUR to ZERO to listOf(DirectionButton.RIGHT, DirectionButton.DOWN, DirectionButton.DOWN),
+            FOUR to ONE to listOf(DirectionButton.DOWN),
+            FOUR to TWO to listOf(DirectionButton.DOWN, DirectionButton.RIGHT),
+            FOUR to THREE to listOf(DirectionButton.DOWN, DirectionButton.RIGHT, DirectionButton.RIGHT),
+            FOUR to FIVE to listOf(DirectionButton.RIGHT),
+            FOUR to SIX to listOf(DirectionButton.RIGHT, DirectionButton.RIGHT),
+            FOUR to SEVEN to listOf(DirectionButton.UP),
+            FOUR to EIGHT to listOf(DirectionButton.UP, DirectionButton.RIGHT),
+            FOUR to NINE to listOf(DirectionButton.UP, DirectionButton.RIGHT, DirectionButton.RIGHT),
+
+            FIVE to ENTER_NUMBER to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.RIGHT),
+            FIVE to ZERO to listOf(DirectionButton.DOWN, DirectionButton.DOWN),
+            FIVE to ONE to listOf(DirectionButton.LEFT, DirectionButton.DOWN),
+            FIVE to TWO to listOf(DirectionButton.DOWN),
+            FIVE to THREE to listOf(DirectionButton.DOWN, DirectionButton.RIGHT),
+            FIVE to FOUR to listOf(DirectionButton.LEFT),
+            FIVE to SIX to listOf(DirectionButton.RIGHT),
+            FIVE to SEVEN to listOf(DirectionButton.LEFT, DirectionButton.UP),
+            FIVE to EIGHT to listOf(DirectionButton.UP),
+            FIVE to NINE to listOf(DirectionButton.UP, DirectionButton.RIGHT),
+
+            SIX to ENTER_NUMBER to listOf(DirectionButton.DOWN, DirectionButton.DOWN),
+            SIX to ZERO to listOf(DirectionButton.LEFT, DirectionButton.DOWN, DirectionButton.DOWN),
+            SIX to ONE to listOf(DirectionButton.LEFT, DirectionButton.LEFT, DirectionButton.DOWN),
+            SIX to TWO to listOf(DirectionButton.LEFT, DirectionButton.DOWN),
+            SIX to THREE to listOf(DirectionButton.DOWN),
+            SIX to FOUR to listOf(DirectionButton.LEFT, DirectionButton.LEFT),
+            SIX to FIVE to listOf(DirectionButton.LEFT),
+            SIX to SEVEN to listOf(DirectionButton.LEFT, DirectionButton.LEFT, DirectionButton.UP),
+            SIX to EIGHT to listOf(DirectionButton.LEFT, DirectionButton.UP),
+            SIX to NINE to listOf(DirectionButton.UP),
+
+            SEVEN to ENTER_NUMBER to listOf(
+                DirectionButton.RIGHT,
+                DirectionButton.RIGHT,
+                DirectionButton.DOWN,
+                DirectionButton.DOWN,
+                DirectionButton.DOWN
+            ),
+            SEVEN to ZERO to listOf(DirectionButton.RIGHT, DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.DOWN),
+            SEVEN to ONE to listOf(DirectionButton.DOWN, DirectionButton.DOWN),
+            SEVEN to TWO to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.RIGHT),
+            SEVEN to THREE to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.RIGHT, DirectionButton.RIGHT),
+            SEVEN to FOUR to listOf(DirectionButton.DOWN),
+            SEVEN to FIVE to listOf(DirectionButton.DOWN, DirectionButton.RIGHT),
+            SEVEN to SIX to listOf(DirectionButton.DOWN, DirectionButton.RIGHT, DirectionButton.RIGHT),
+            SEVEN to EIGHT to listOf(DirectionButton.RIGHT),
+            SEVEN to NINE to listOf(DirectionButton.RIGHT, DirectionButton.RIGHT),
+
+            EIGHT to ENTER_NUMBER to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.RIGHT),
+            EIGHT to ZERO to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.DOWN),
+            EIGHT to ONE to listOf(DirectionButton.LEFT, DirectionButton.DOWN, DirectionButton.DOWN),
+            EIGHT to TWO to listOf(DirectionButton.DOWN, DirectionButton.DOWN),
+            EIGHT to THREE to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.RIGHT),
+            EIGHT to FOUR to listOf(DirectionButton.LEFT, DirectionButton.DOWN),
+            EIGHT to FIVE to listOf(DirectionButton.DOWN),
+            EIGHT to SIX to listOf(DirectionButton.DOWN, DirectionButton.RIGHT),
+            EIGHT to SEVEN to listOf(DirectionButton.LEFT),
+            EIGHT to NINE to listOf(DirectionButton.RIGHT),
+
+            NINE to ENTER_NUMBER to listOf(DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.DOWN),
+            NINE to ZERO to listOf(DirectionButton.LEFT, DirectionButton.DOWN, DirectionButton.DOWN, DirectionButton.DOWN),
+            NINE to ONE to listOf(DirectionButton.LEFT, DirectionButton.LEFT, DirectionButton.DOWN, DirectionButton.DOWN),
+            NINE to TWO to listOf(DirectionButton.LEFT, DirectionButton.DOWN, DirectionButton.DOWN),
+            NINE to THREE to listOf(DirectionButton.DOWN, DirectionButton.DOWN),
+            NINE to FOUR to listOf(DirectionButton.LEFT, DirectionButton.LEFT, DirectionButton.DOWN),
+            NINE to FIVE to listOf(DirectionButton.LEFT, DirectionButton.DOWN),
+            NINE to SIX to listOf(DirectionButton.DOWN),
+            NINE to SEVEN to listOf(DirectionButton.LEFT, DirectionButton.LEFT),
+            NINE to EIGHT to listOf(DirectionButton.LEFT)
+        )
     }
 }
 
@@ -331,20 +482,24 @@ enum class DirectionButton(val char: Char, val coordinate: Coordinate, val delta
         val OPTIMAL_MOVE_MAP: Map<Pair<DirectionButton, DirectionButton>, List<DirectionButton>> = mapOf(
             ENTER_DIRECTION to UP to listOf(LEFT),
             ENTER_DIRECTION to RIGHT to listOf(DOWN),
-            ENTER_DIRECTION to DOWN to listOf(DOWN, LEFT),
+            ENTER_DIRECTION to DOWN to listOf(LEFT, DOWN),
             ENTER_DIRECTION to LEFT to listOf(DOWN, LEFT, LEFT),
+
             UP to ENTER_DIRECTION to listOf(RIGHT),
             UP to RIGHT to listOf(DOWN, RIGHT),
             UP to DOWN to listOf(DOWN),
             UP to LEFT to listOf(DOWN, LEFT),
+
             RIGHT to ENTER_DIRECTION to listOf(UP),
-            RIGHT to UP to listOf(UP, LEFT),
+            RIGHT to UP to listOf(LEFT, UP),
             RIGHT to DOWN to listOf(LEFT),
             RIGHT to LEFT to listOf(LEFT, LEFT),
+
             DOWN to ENTER_DIRECTION to listOf(UP, RIGHT),
             DOWN to UP to listOf(UP),
             DOWN to RIGHT to listOf(RIGHT),
             DOWN to LEFT to listOf(LEFT),
+
             LEFT to ENTER_DIRECTION to listOf(RIGHT, RIGHT, UP),
             LEFT to UP to listOf(RIGHT, UP),
             LEFT to RIGHT to listOf(RIGHT, RIGHT),
