@@ -142,7 +142,7 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         DFS, BFS
     }
 
-    fun search(searchType: SearchType, visitor: SearchVisitor, firstRoot: V?, complete: Boolean = true) {
+    fun search(searchType: SearchType, visitor: SearchVisitor, firstRoot: V? = null, complete: Boolean = true) {
         val vertexIterator = vertexIterator()
         if (!vertexIterator.hasNext()) {
             return
