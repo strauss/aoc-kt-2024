@@ -2,6 +2,7 @@
 .idea
 .kotlin/
 build
-aoc/**/*.txt
+/aoc/**/*.txt
+/aoc/**/*.dot
 local.properties
 out/**/*.png

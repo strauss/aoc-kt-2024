@@ -4,12 +4,19 @@ import aoc_util.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import java.util.*
+import kotlin.io.path.Path
+import kotlin.io.path.writeText
 
 fun main() {
 //    solve()
-    val input = readInput2024("Day24")
+    val input = readInput2024("Day24_corrected")
+    val dotFile = parseToDot(input)
+    Path("aoc/2024/Day24_test.dot").writeText(dotFile)
+
     val (graph, assignment) = createDirectedGraph(input)
     playAround(graph, assignment)
+    val changedValues = listOf("z12", "kth", "gsd", "z26", "tbt", "z32", "qnf", "vpm").sorted()
+    println("Corrections: ${changedValues.joinToString(",")}")
 }
 
 private fun solve() {
@@ -37,10 +44,10 @@ private fun playAround(graph: BitSetAdjacencyBasedGraph<Operation>, assignment: 
         }
     }
 
-    for (position in 0..44) {
-        val z = "z${position.toString().padStart(2, '0')}"
-        println(getFormulaFor(outputToOperationMap, z))
-    }
+//    for (position in 0..44) {
+//        val z = "z${position.toString().padStart(2, '0')}"
+//        println(getFormulaFor(outputToOperationMap, z))
+//    }
 
     // test swap
 //    val newGraph = swapOutputConnections(graph, "z12", "z15")
@@ -262,6 +269,67 @@ private fun assembleLongFromBits(
     }
     return result
 }
+
+private fun parseToDot(input: List<String>): String {
+    val out = StringBuilder()
+    val establishedNodes = HashSet<String>()
+    var operatorId = 0
+    out.append("strict digraph{\n")
+    for (line in input) {
+        if (line.isBlank()) {
+            continue
+        }
+        val assignment = inputAssignmentRegex.matchEntire(line)
+        if (assignment != null) {
+            val groupValues = assignment.groupValues
+            val node = groupValues[1]
+            val color = if (node.startsWith("x")) "lime" else "cyan"
+            out.append("\t$node [fillcolor=$color, style=filled];\n")
+            establishedNodes.add(node)
+            continue
+        }
+        val operation = operationRegex.matchEntire(line)
+        if (operation != null) {
+            val groupValues = operation.groupValues
+            val s1 = groupValues[1]
+            if (s1 !in establishedNodes) {
+                establishedNodes.add(s1)
+                out.append("\t$s1;\n")
+            }
+            val operator = Operator.valueOf(groupValues[2])
+            val operatorAndId = "${operator}_$operatorId"
+            val operatorColor = when (operator) {
+                Operator.AND -> "red"
+                Operator.OR -> "lightgray"
+                Operator.XOR -> "gray"
+            }
+            out.append("\t$operatorAndId [label=\"$operator\", fillcolor=$operatorColor, style = filled];\n")
+            operatorId += 1
+            val s2 = groupValues[3]
+            if (s2 !in establishedNodes) {
+                establishedNodes.add(s2)
+                out.append("\t$s2;\n")
+            }
+            val target = groupValues[4]
+            if (target !in establishedNodes) {
+                establishedNodes.add(target)
+                if (target.startsWith("z")) {
+                    out.append("\t$target [fillcolor=orange style=filled];\n")
+                } else {
+                    out.append("\t$target;\n")
+                }
+            }
+            out.append("\t$s1 -> $operatorAndId;\n")
+            out.append("\t$s2 -> $operatorAndId;\n")
+            out.append("\t$operatorAndId -> $target;\n")
+        }
+    }
+    out.append("}\n")
+    return out.toString()
+}
+
+private val inputAssignmentRegex = "([xy]\\d\\d): ([01])".toRegex()
+private val operationRegex = "([a-z0-9]{3}) (AND|OR|XOR) ([a-z0-9]{3}) -> ([a-z0-9]{3})".toRegex()
 
 private fun createDirectedGraph(input: List<String>): Pair<BitSetAdjacencyBasedGraph<Operation>, Map<String, Int>> {
     val targetToSourceMap = LinkedHashMap<String, Operation>()
