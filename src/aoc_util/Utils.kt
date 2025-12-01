@@ -12,6 +12,8 @@ fun readInput2023(name: String) = internalReadInput(name, 2023)
 
 fun readInput2024(name: String) = internalReadInput(name, 2024)
 
+fun readInput2025(name: String) = internalReadInput(name, 2025)
+
 fun main() {
     val list = listOf(1, 3, 989, 3, 3, 9098, 3, 0, 3)
     println(list)
