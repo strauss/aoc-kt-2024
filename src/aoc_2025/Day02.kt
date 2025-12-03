@@ -18,13 +18,6 @@ fun main() {
     println("Result: $result")
     val result2 = checkInput(input, ::checkId2)
     println("Result 2: $result2")
-
-//    println(checkRange(11L..22L, ::checkId2))
-//    println(checkRange(95L..115L, ::checkId2))
-//    println(checkRange(998L..1012L, ::checkId2))
-//    println(checkRange(1188511880L..1188511890, ::checkId2))
-//    println(checkRange(998L..1012L, ::checkId2))
-//    println(checkRange(2121212118L..2121212124L, ::checkId2))
 }
 
 fun checkId2(id: String): Boolean {
