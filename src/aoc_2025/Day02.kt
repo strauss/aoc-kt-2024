@@ -1,5 +1,6 @@
 package aoc_2025
 
+import aoc_util.allEquals
 import aoc_util.readInput2025
 
 fun main() {
@@ -20,7 +21,7 @@ fun main() {
     println("Result 2: $result2")
 }
 
-fun checkId2(id: String): Boolean {
+private fun checkId2(id: String): Boolean {
     val maxSubLength = id.length / 2
     for (currentSubLengh in 1..maxSubLength) {
         val splitted = buildList {
@@ -39,26 +40,13 @@ fun checkId2(id: String): Boolean {
     return false
 }
 
-fun List<Any>.allEquals(): Boolean {
-    if (size <= 1) {
-        return true
-    }
-    val compareWith = this[0]
-    for (any in this) {
-        if (any != compareWith) {
-            return false
-        }
-    }
-    return true
-}
-
-fun checkId1(id: String): Boolean {
+private fun checkId1(id: String): Boolean {
     val left = id.substring(0..(id.length - 1) / 2)
     val right = id.substring(id.length - id.length / 2..id.length - 1)
     return left == right
 }
 
-fun checkRange(range: LongRange, checkId: (String) -> Boolean): Long {
+private fun checkRange(range: LongRange, checkId: (String) -> Boolean): Long {
     var result: Long = 0L
     for (id in range) {
         if (checkId(id.toString())) {
@@ -68,7 +56,7 @@ fun checkRange(range: LongRange, checkId: (String) -> Boolean): Long {
     return result
 }
 
-fun checkInput(input: List<String>, checkId: (String) -> Boolean): Long {
+private fun checkInput(input: List<String>, checkId: (String) -> Boolean): Long {
     var result = 0L
     for (currentStringRange in input) {
         val splittedRange = currentStringRange.split('-')

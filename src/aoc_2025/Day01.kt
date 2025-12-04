@@ -93,7 +93,7 @@ private fun stretchInput(input: List<Int>): List<Int> {
     }
 }
 
-fun solve2ThirdTry(start: Int, input: List<Int>): Int {
+private fun solve2ThirdTry(start: Int, input: List<Int>): Int {
     val realInput = stretchInput(input)
     var current = start
     var result = 0
@@ -116,7 +116,7 @@ fun solve2ThirdTry(start: Int, input: List<Int>): Int {
     return result
 }
 
-fun solve2ForReal(start: Int, input: List<Int>): Int {
+private fun solve2ForReal(start: Int, input: List<Int>): Int {
     var current = start
     var result = 0
 
@@ -142,7 +142,7 @@ fun solve2ForReal(start: Int, input: List<Int>): Int {
     return result
 }
 
-fun solve2(start: Int, input: List<Int>): Int {
+private fun solve2(start: Int, input: List<Int>): Int {
     var current = start
     var result = 0
     for (i in input) {
@@ -168,7 +168,7 @@ fun solve2(start: Int, input: List<Int>): Int {
     return result
 }
 
-fun solve1(start: Int, input: List<Int>): Int {
+private fun solve1(start: Int, input: List<Int>): Int {
     var current = start
     var result = 0
     for (i in input) {
@@ -192,7 +192,7 @@ fun solve1(start: Int, input: List<Int>): Int {
     return result
 }
 
-fun parseInput(input: List<String>): List<Int> {
+private fun parseInput(input: List<String>): List<Int> {
     return buildList {
         input.forEach {
             val i = it.replace('L', '-')

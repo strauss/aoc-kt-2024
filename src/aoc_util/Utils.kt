@@ -190,34 +190,35 @@ fun <T> List<T>.startsWith(startList: List<T>): Boolean {
 
 data class IntAndLocation(val number: Int, val row: Int, val range: IntRange)
 
-fun getAdjacentValues(
-    array: PrimitiveMultiDimArray<Char>,
+fun <T> PrimitiveMultiDimArray<T>.getAdjacentValues(
     row: Int,
     col: Int,
-    filter: (Char) -> Boolean = { true }
-): List<Pair<Char, Pair<Int, Int>>> {
-    val result: MutableList<Pair<Char, Pair<Int, Int>>> = ArrayList()
-
-    result.addIfInBounds(array, row - 1, col, filter)// north
-    result.addIfInBounds(array, row - 1, col + 1, filter) // north-east
-    result.addIfInBounds(array, row, col + 1, filter) // east
-    result.addIfInBounds(array, row + 1, col + 1, filter) // south-east
-    result.addIfInBounds(array, row + 1, col, filter) // south
-    result.addIfInBounds(array, row + 1, col - 1, filter) // south-west
-    result.addIfInBounds(array, row, col - 1, filter) // west
-    result.addIfInBounds(array, row - 1, col - 1, filter) // north-west
-
+    filter: (T) -> Boolean = { true }
+): List<Pair<T, Pair<Int, Int>>> {
+    val result: MutableList<Pair<T, Pair<Int, Int>>> = ArrayList()
+    result.addIfInBounds(this, row - 1, col, filter)// north
+    result.addIfInBounds(this, row - 1, col + 1, filter) // north-east
+    result.addIfInBounds(this, row, col + 1, filter) // east
+    result.addIfInBounds(this, row + 1, col + 1, filter) // south-east
+    result.addIfInBounds(this, row + 1, col, filter) // south
+    result.addIfInBounds(this, row + 1, col - 1, filter) // south-west
+    result.addIfInBounds(this, row, col - 1, filter) // west
+    result.addIfInBounds(this, row - 1, col - 1, filter) // north-west
     return result
 }
 
-fun MutableList<Pair<Char, Pair<Int, Int>>>.addIfInBounds(
-    from: PrimitiveMultiDimArray<Char>,
+
+private fun <T> PrimitiveMultiDimArray<T>.height(): Int = getDimensionSize(0)
+private fun <T> PrimitiveMultiDimArray<T>.width(): Int = getDimensionSize(1)
+
+fun <T> MutableList<Pair<T, Pair<Int, Int>>>.addIfInBounds(
+    from: PrimitiveMultiDimArray<T>,
     row: Int,
     col: Int,
-    filter: (Char) -> Boolean = { true }
+    filter: (T) -> Boolean = { true }
 ) {
-    val height = from.getDimensionSize(0)
-    val width = from.getDimensionSize(1)
+    val height = from.height()
+    val width = from.width()
     if (inBounds(row, col, height, width)) {
         val element = from[row, col]
         if (filter(element)) {
@@ -327,6 +328,19 @@ enum class Movement(val deltaRow: Int, val deltaCol: Int) {
     WEST(0, -1),
     NORTH_WEST(-1, -1),
     STAY(0, 0)
+}
+
+fun List<Any>.allEquals(): Boolean {
+    if (size <= 1) {
+        return true
+    }
+    val compareWith = this[0]
+    for (any in this) {
+        if (any != compareWith) {
+            return false
+        }
+    }
+    return true
 }
 
 fun <T> Pair<T, T>.getInverse() = this.second to this.first

@@ -45,7 +45,7 @@ private fun determineAdjacentNumbers(
     row: Int,
     col: Int
 ): Set<IntAndLocation> {
-    val adjacentValues: List<Pair<Char, Pair<Int, Int>>> = getAdjacentValues(array, row, col) { it.isLatinDigit() }
+    val adjacentValues: List<Pair<Char, Pair<Int, Int>>> = array.getAdjacentValues(row, col) { it.isLatinDigit() }
     val adjacentNumbers = HashSet<IntAndLocation>()
     for ((_, location) in adjacentValues) {
         val numberCandidates: List<IntAndLocation> = numbersByRow[location.first] ?: emptyList()
@@ -66,7 +66,7 @@ private fun determineAdjacentNumbersWrong(
     col: Int
 ): Set<IntAndLocation> {
     val numberCandidates = (numbersByRow[row - 1] ?: emptyList()) + (numbersByRow[row + 1] ?: emptyList())
-    val adjacentValues: List<Pair<Char, Pair<Int, Int>>> = getAdjacentValues(array, row, col) { it.isLatinDigit() }
+    val adjacentValues: List<Pair<Char, Pair<Int, Int>>> = array.getAdjacentValues(row, col) { it.isLatinDigit() }
     val adjacentNumbers = HashSet<IntAndLocation>()
     for (candidate in numberCandidates) {
         val (num, nr, range) = candidate
@@ -128,7 +128,11 @@ private fun partNumbers(array: PrimitiveMultiDimArray<Char>): Int {
 
 private fun Char.isLatinDigit() = this in '0'..'9'
 
-fun getAdjacentValuesExceptEastWest(array: PrimitiveMultiDimArray<Char>, row: Int, col: Int): List<Pair<Char, Pair<Int, Int>>> {
+fun getAdjacentValuesExceptEastWest(
+    array: PrimitiveMultiDimArray<Char>,
+    row: Int,
+    col: Int
+): List<Pair<Char, Pair<Int, Int>>> {
     val result: MutableList<Pair<Char, Pair<Int, Int>>> = ArrayList()
 
     result.addIfInBounds(array, row - 1, col) // north
@@ -145,7 +149,8 @@ fun getAdjacentValuesExceptEastWest(array: PrimitiveMultiDimArray<Char>, row: In
 
 private fun parseInput(input: List<String>): Pair<PrimitiveMultiDimArray<Char>, Map<Int, List<IntAndLocation>>> {
     val array = parseInputAsMultiDimArray(input)
-    val result: MutableMap<Int, List<IntAndLocation>> = HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<List<IntAndLocation>>().create()
+    val result: MutableMap<Int, List<IntAndLocation>> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<List<IntAndLocation>>().create()
     var row = 0
     for (line in input) {
         val elements: List<IntAndLocation> = line.extractInts(row)

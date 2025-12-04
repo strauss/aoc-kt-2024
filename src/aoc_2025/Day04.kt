@@ -1,6 +1,7 @@
 package aoc_2025
 
 import aoc_util.PrimitiveMultiDimArray
+import aoc_util.getAdjacentValues
 import aoc_util.parseInputAsMultiDimArray
 import aoc_util.readInput2025
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
@@ -40,61 +41,26 @@ private fun countFreeRolls(array: PrimitiveMultiDimArray<Char>, remove: Boolean 
     val width = array.getDimensionSize(1)
     val markRemove = PrimitiveIntSetB()
     var result = 0
-    for (y in 0..<height) {
-        for (x in 0..<width) {
-            val current = array[x, y]
-            if (current == '@' && array.countBlockedNeigbors(x, y) < 4) {
+    for (row in 0..<height) {
+        for (col in 0..<width) {
+            val current = array[row, col]
+            if (current == '@' && array.countBlockedNeighbors(row, col) < 4) {
                 result += 1
-                markRemove.add(y * width + x)
+                markRemove.add(row * width + col)
             }
         }
     }
     if (remove) {
         for (index in markRemove) {
-            val x = index % width
-            val y = index / width
-            array[x, y] = '.'
+            val col = index % width
+            val row = index / width
+            array[row, col] = '.'
         }
     }
     return result
 }
 
-private fun <T> PrimitiveMultiDimArray<T>.countBlockedNeigbors(x: Int, y: Int): Int {
-    return getNeighbors(x, y).asSequence()
-        .filter { it == '@' }
-        .count()
+private fun <T> PrimitiveMultiDimArray<T>.countBlockedNeighbors(row: Int, col: Int): Int {
+    return getAdjacentValues(row, col) { it == '@' }.count()
 }
 
-private fun <T> PrimitiveMultiDimArray<T>.height(): Int = getDimensionSize(0)
-private fun <T> PrimitiveMultiDimArray<T>.width(): Int = getDimensionSize(1)
-
-private fun <T> PrimitiveMultiDimArray<T>.getNeighbors(x: Int, y: Int): List<T> {
-    val result = mutableListOf<T>()
-    if (x in 0..<width() && y in 0..<height()) {
-        if (y > 0) {
-            result.add(this[x, y - 1]) // north
-        }
-        if (x < width() - 1 && y > 0) {
-            result.add(this[x + 1, y - 1]) // northeast
-        }
-        if (x < width() - 1) {
-            result.add(this[x + 1, y]) // east
-        }
-        if (x < width() - 1 && y < height() - 1) {
-            result.add(this[x + 1, y + 1]) // southeast
-        }
-        if (y < height() - 1) {
-            result.add(this[x, y + 1]) // south
-        }
-        if (x > 0 && y < height() - 1) {
-            result.add(this[x - 1, y + 1]) // southwest
-        }
-        if (x > 0) {
-            result.add(this[x - 1, y]) // west
-        }
-        if (x > 0 && y > 0) {
-            result.add(this[x - 1, y - 1]) // northwest
-        }
-    }
-    return result
-}
