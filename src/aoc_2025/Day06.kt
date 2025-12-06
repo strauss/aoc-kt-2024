@@ -1,11 +1,8 @@
 package aoc_2025
 
-import aoc_util.PrimitiveMultiDimArray
+import aoc_util.Primitive2DCharArray
 import aoc_util.extractSchlong
-import aoc_util.parseInputAsMultiDimArray
 import aoc_util.readInput2025
-import de.dreamcube.hornet_queen.array.PrimitiveCharArray
-import java.math.BigInteger
 
 fun main() {
     val testLines = readInput2025("Day06_test")
@@ -13,9 +10,9 @@ fun main() {
     val testResult = evaluateInput(testInput)
     println("Test result: $testResult")
 
-    val testArray: PrimitiveMultiDimArray<Char> = parseInputAsMultiDimArray(testLines)
+    val testArray: Primitive2DCharArray = Primitive2DCharArray.parseFromLines(testLines)
     val testTArray = testArray.transpose()
-    val testInput2 = testTArray.toLines()
+    val testInput2 = testTArray.rows()
     val testResult2 = evaluateInput2(testInput2)
     println("Test result 2: $testResult2")
 
@@ -24,23 +21,20 @@ fun main() {
     val result = evaluateInput(input)
     println("Result: $result")
 
-    val array = parseInputAsMultiDimArray(lines)
-//    array.show()
+    val array = Primitive2DCharArray.parseFromLines(lines)
     val tarray = array.transpose()
-    tarray.show()
-    val input2 = tarray.toLines()
+    val input2 = tarray.rows()
     val result2 = evaluateInput2(input2)
     println("Result 2: $result2")
 }
 
-fun evaluateInput2(lines: List<String>): BigInteger {
-    var result = BigInteger.ZERO
+fun evaluateInput2(lines: List<String>): Long {
+    var result = 0L
     var operator: String? = null
     val numbers = ArrayList<Long>()
     fun calculateAndAdd(op: String) {
         val cresult = calculate(op, numbers)
-//        println(cresult)
-        result += cresult.toBigInteger()
+        result += cresult
     }
 
     for (line in lines) {
@@ -69,45 +63,8 @@ fun evaluateInput2(lines: List<String>): BigInteger {
     return result
 }
 
-fun PrimitiveMultiDimArray<Char>.transpose(): PrimitiveMultiDimArray<Char> {
-    val height = this.getDimensionSize(0)
-    val width = this.getDimensionSize(1)
-    val out: PrimitiveMultiDimArray<Char> = PrimitiveMultiDimArray(width, height) { size -> PrimitiveCharArray(size) }
-    for (oldRow in 0..<height) {
-        for (oldCol in 0..<width) {
-            out[oldCol, oldRow] = this[oldRow, oldCol]
-        }
-    }
-    return out
-}
-
-fun PrimitiveMultiDimArray<Char>.show() {
-    val height = this.getDimensionSize(0)
-    val width = this.getDimensionSize(1)
-    for (row in 0..<height) {
-        for (col in 0..<width) {
-            print(this[row, col])
-        }
-        println()
-    }
-}
-
-fun PrimitiveMultiDimArray<Char>.toLines(): List<String> {
-    val height = this.getDimensionSize(0)
-    val width = this.getDimensionSize(1)
-    val result = ArrayList<String>()
-    for (row in 0..<height) {
-        val charArray = CharArray(width)
-        for (col in 0..<width) {
-            charArray[col] = this[row, col]
-        }
-        result.add(String(charArray))
-    }
-    return result
-}
-
 private fun evaluateInput(input: List<Pair<List<Long>, String>>): Long {
-    return input.map { evaluateOne(it) }.sum()
+    return input.sumOf { evaluateOne(it) }
 }
 
 private fun evaluateOne(one: Pair<List<Long>, String>): Long {
