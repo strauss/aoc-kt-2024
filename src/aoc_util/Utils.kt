@@ -23,7 +23,7 @@ fun main() {
 /**
  * Reads lines from the given input txt file.
  */
-private fun internalReadInput(name: String, year: Int) = Path("aoc/$year/$name.txt").readText().trim().lines()
+private fun internalReadInput(name: String, year: Int) = Path("aoc/$year/$name.txt").readText().lines()
 
 /**
  * Converts string to md5 hash.
@@ -38,7 +38,8 @@ fun String.md5() = BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteA
 fun Any?.println() = println(this)
 
 fun parseInputAsMultiDimArray(input: List<String>): PrimitiveMultiDimArray<Char> {
-    val dim = input[0].length // I don't care about any exception here ... if empty -> bad luck
+    val dim =
+        input.asSequence().map { it.length }.max() // I don't care about any exception here ... if empty -> bad luck
     val out: PrimitiveMultiDimArray<Char> = PrimitiveMultiDimArray(input.size, dim) { size -> PrimitiveCharArray(size) }
     var j = 0
     input.forEach { line ->
