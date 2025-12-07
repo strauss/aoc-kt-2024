@@ -7,6 +7,7 @@ import java.security.MessageDigest
 import kotlin.io.path.Path
 import kotlin.io.path.readText
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 
 fun readInput2023(name: String) = internalReadInput(name, 2023)
 
@@ -345,3 +346,10 @@ fun List<Any>.allEquals(): Boolean {
 }
 
 fun <T> Pair<T, T>.getInverse() = this.second to this.first
+
+tailrec fun gcd(a: Long, b: Long): Long = if (b == 0L) a else gcd(b, a % b)
+
+fun lcm(a: Long, b: Long): Long {
+    val gcd: Long = gcd(a, b)
+    return (a * b).absoluteValue / gcd
+}
