@@ -20,12 +20,9 @@ fun main() {
 }
 
 private fun tachyonQuantumSimulation(array: Primitive2DCharArray): Pair<Int, Long> {
-    var splits = 0
+    var splits = 0 // Result for Part 1
     val activeColumns: MutableSet<Int> = PrimitiveIntSetB()
-    val intensities = PrimitiveLongArray(array.width)
-    for (col in 0..<array.width) {
-        intensities[col] = 0
-    }
+    val intensities = PrimitiveLongArray(array.width) // Result for part 2
     for (row in 0..<array.height) {
         if (row == 0) {
             val startIndex = array.getRow(row).indexOf('S')
@@ -33,8 +30,8 @@ private fun tachyonQuantumSimulation(array: Primitive2DCharArray): Pair<Int, Lon
             intensities[startIndex] = 1
             continue
         }
-        val addColumns = PrimitiveIntSetB()
-        val removeColumns = PrimitiveIntSetB()
+        val addColumns: MutableSet<Int> = PrimitiveIntSetB()
+        val removeColumns: MutableSet<Int> = PrimitiveIntSetB()
         for (col in activeColumns) {
             val current = array[row, col]
             if (current == '^') {
