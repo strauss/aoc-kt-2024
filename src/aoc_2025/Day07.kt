@@ -2,7 +2,7 @@ package aoc_2025
 
 import aoc_util.Primitive2DCharArray
 import aoc_util.readInput2025
-import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
+import de.dreamcube.hornet_queen.array.PrimitiveLongArray
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 
 fun main() {
@@ -22,11 +22,8 @@ fun main() {
 private fun tachyonQuantumSimulation(array: Primitive2DCharArray): Pair<Int, Long> {
     var splits = 0
     val activeColumns: MutableSet<Int> = PrimitiveIntSetB()
-    val intensities: MutableMap<Int, Long> = HashTableBasedMapBuilder
-        .useIntKey()
-        .useLongValue()
-        .create(array.width)
-    for (col in 0..array.width) {
+    val intensities = PrimitiveLongArray(array.width)
+    for (col in 0..<array.width) {
         intensities[col] = 0
     }
     for (row in 0..<array.height) {
@@ -45,13 +42,13 @@ private fun tachyonQuantumSimulation(array: Primitive2DCharArray): Pair<Int, Lon
                 addColumns.add(col - 1)
                 addColumns.add(col + 1)
                 splits += 1
-                intensities[col - 1] = intensities[col - 1]!! + intensities[col]!!
-                intensities[col + 1] = intensities[col + 1]!! + intensities[col]!!
+                intensities[col - 1] += intensities[col]
+                intensities[col + 1] += intensities[col]
                 intensities[col] = 0
             }
         }
         activeColumns.addAll(addColumns)
         activeColumns.removeAll(removeColumns)
     }
-    return splits to intensities.values.sum()
+    return splits to intensities.sum()
 }
