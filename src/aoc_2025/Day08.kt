@@ -2,23 +2,24 @@ package aoc_2025
 
 import aoc_util.extractInts
 import aoc_util.readInput2025
+import aoc_util.solve
 import java.util.*
 import kotlin.math.sqrt
 
 fun main() {
     val testLines = readInput2025("Day08_test")
     val testPoints = parseInput(testLines)
-    val testResult = connectionTest(testPoints, 10)
-    println("Test result: $testResult")
-    val testResult2 = connection(testPoints)
-    println("Test 2 result: $testResult2")
+    solve("Test result", testPoints) {
+        connectionTest(it, 10)
+    }
+    solve("Test result 2", testPoints, ::connection)
 
     val lines = readInput2025("Day08")
     val points = parseInput(lines)
-    val result = connectionTest(points, 1000)
-    println("Result: $result")
-    val result2 = connection(points)
-    println("Result 2: $result2")
+    solve("Result", points) {
+        connectionTest(it, 1000)
+    }
+    solve("Result 2", points, ::connection)
 }
 
 private fun connection(junctions: List<Point3D>): Long {
