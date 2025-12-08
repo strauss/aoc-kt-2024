@@ -1,6 +1,6 @@
 package aoc_2023
 
-import aoc_util.extractSchlong
+import aoc_util.extractLongs
 import aoc_util.readInput2023
 
 fun main() {
@@ -21,8 +21,8 @@ fun main() {
 }
 
 private fun extractTimeDistancePairs(times: String, distances: String): List<Pair<Long, Long>> {
-    val timeList = times.extractSchlong()
-    val distanceList = distances.extractSchlong()
+    val timeList = times.extractLongs()
+    val distanceList = distances.extractLongs()
     return timeList.zip(distanceList)
 }
 

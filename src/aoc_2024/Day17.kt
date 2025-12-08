@@ -76,10 +76,10 @@ private fun parseInput(input: List<String>): MiniComputer {
     var program = emptyList<Int>()
     for (line in input) {
         when {
-            line.contains("A") -> registerA = line.extractSchlong().first()
-            line.contains("B") -> registerB = line.extractSchlong().first()
-            line.contains("C") -> registerC = line.extractSchlong().first()
-            line.startsWith("Program") -> program = line.extractInts().map { it.number }
+            line.contains("A") -> registerA = line.extractLongs().first()
+            line.contains("B") -> registerB = line.extractLongs().first()
+            line.contains("C") -> registerC = line.extractLongs().first()
+            line.startsWith("Program") -> program = line.extractIntsWithLocation().map { it.number }
         }
     }
     return MiniComputer(registerA, registerB, registerC, program)

@@ -1,6 +1,6 @@
 package aoc_2025
 
-import aoc_util.extractPureInts
+import aoc_util.extractInts
 import aoc_util.readInput2025
 import java.util.*
 import kotlin.math.sqrt
@@ -76,7 +76,7 @@ private fun connectionTest(junctions: List<Point3D>, connections: Int): Long {
 private fun parseInput(lines: List<String>): List<Point3D> {
     return buildList {
         for (line in lines) {
-            val ints = line.extractPureInts()
+            val ints = line.extractInts()
             add(Point3D(ints[0], ints[1], ints[2]))
         }
     }

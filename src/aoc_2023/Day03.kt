@@ -153,7 +153,7 @@ private fun parseInput(input: List<String>): Pair<PrimitiveMultiDimArray<Char>, 
         HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<List<IntAndLocation>>().create()
     var row = 0
     for (line in input) {
-        val elements: List<IntAndLocation> = line.extractInts(row)
+        val elements: List<IntAndLocation> = line.extractIntsWithLocation(row)
         result[row] = elements
         row += 1
     }

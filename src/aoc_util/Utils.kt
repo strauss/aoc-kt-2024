@@ -54,7 +54,7 @@ fun parseInputAsMultiDimArray(input: List<String>): PrimitiveMultiDimArray<Char>
 }
 
 val intNumberRegex = "(-?\\d+)".toRegex()
-fun String.extractInts(row: Int = 0): List<IntAndLocation> {
+fun String.extractIntsWithLocation(row: Int = 0): List<IntAndLocation> {
     val out: MutableList<IntAndLocation> = ArrayList()
     intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
         out.add(IntAndLocation(matchResult.groupValues[1].toInt(), row, matchResult.range))
@@ -62,7 +62,7 @@ fun String.extractInts(row: Int = 0): List<IntAndLocation> {
     return out
 }
 
-fun String.extractSchlong(): List<Long> {
+fun String.extractLongs(): List<Long> {
     val out = PrimitiveLongArrayList()
     intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
         out.add(matchResult.groupValues[1].toLong())
@@ -70,7 +70,7 @@ fun String.extractSchlong(): List<Long> {
     return out
 }
 
-fun String.extractPureInts(): List<Int> {
+fun String.extractInts(): List<Int> {
     val out = PrimitiveIntArrayList()
     intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
         out.add(matchResult.groupValues[1].toInt())

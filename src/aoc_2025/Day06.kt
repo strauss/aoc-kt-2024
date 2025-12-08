@@ -1,7 +1,7 @@
 package aoc_2025
 
 import aoc_util.Primitive2DCharArray
-import aoc_util.extractSchlong
+import aoc_util.extractLongs
 import aoc_util.readInput2025
 
 fun main() {
@@ -55,7 +55,7 @@ fun evaluateInput2(lines: List<String>): Long {
             numbers.clear()
         }
 
-        numbers.add(line.extractSchlong()[0])
+        numbers.add(line.extractLongs()[0])
     }
     if (operator != null) {
         calculateAndAdd(operator)
@@ -90,7 +90,7 @@ private fun parseInput(lines: List<String>): List<Pair<List<Long>, String>> {
     var operators: List<String> = ArrayList()
     for (i in lines.indices) {
         if (i < lines.size - 1) {
-            inputLines.add(lines[i].extractSchlong())
+            inputLines.add(lines[i].extractLongs())
         } else {
             operators = lines[i].trim().split("\\s+".toRegex())
         }

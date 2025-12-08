@@ -1,7 +1,7 @@
 package aoc_2023
 
 import aoc_util.createPairs
-import aoc_util.extractSchlong
+import aoc_util.extractLongs
 import aoc_util.readInput2023
 import kotlin.math.min
 
@@ -41,7 +41,7 @@ private fun parseInput(input: List<String>): PuzzleArrangement {
             continue
         }
         if (state == ParsingState.INIT && line.startsWith("seeds: ")) {
-            seeds = line.extractSchlong()
+            seeds = line.extractLongs()
             continue
         }
         state = when {
@@ -55,7 +55,7 @@ private fun parseInput(input: List<String>): PuzzleArrangement {
             else -> state
         }
 
-        val longs = line.extractSchlong()
+        val longs = line.extractLongs()
         if (longs.size != 3) {
             continue
         }

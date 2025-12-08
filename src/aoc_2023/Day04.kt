@@ -1,6 +1,6 @@
 package aoc_2023
 
-import aoc_util.extractInts
+import aoc_util.extractIntsWithLocation
 import aoc_util.readInput2023
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 
@@ -65,11 +65,11 @@ private fun parseInput(input: List<String>): List<Card> {
     val out = mutableListOf<Card>()
     for (line in input) {
         val splitLine = line.split(':')
-        val cardNumber = splitLine[0].extractInts().map { it.number }[0]
+        val cardNumber = splitLine[0].extractIntsWithLocation().map { it.number }[0]
         val actualLine: String = splitLine[1]
         val actualSplitLine: List<String> = actualLine.split('|')
-        val winningNumbers: Set<Int> = actualSplitLine[0].extractInts().map { it.number }.toSet()
-        val drawnNumbers: List<Int> = actualSplitLine[1].extractInts().map { it.number }
+        val winningNumbers: Set<Int> = actualSplitLine[0].extractIntsWithLocation().map { it.number }.toSet()
+        val drawnNumbers: List<Int> = actualSplitLine[1].extractIntsWithLocation().map { it.number }
         out.add(Card(cardNumber, winningNumbers, drawnNumbers))
     }
     return out
