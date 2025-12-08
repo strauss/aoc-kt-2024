@@ -1,6 +1,7 @@
 package aoc_util
 
 import de.dreamcube.hornet_queen.array.PrimitiveCharArray
+import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import de.dreamcube.hornet_queen.list.PrimitiveLongArrayList
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -65,6 +66,14 @@ fun String.extractSchlong(): List<Long> {
     val out = PrimitiveLongArrayList()
     intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
         out.add(matchResult.groupValues[1].toLong())
+    }
+    return out
+}
+
+fun String.extractPureInts(): List<Int> {
+    val out = PrimitiveIntArrayList()
+    intNumberRegex.findAll(this).iterator().forEach { matchResult: MatchResult ->
+        out.add(matchResult.groupValues[1].toInt())
     }
     return out
 }
