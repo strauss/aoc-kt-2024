@@ -14,56 +14,25 @@ fun main() {
     val testLines = readInput2025("Day09_test")
     val testInput = parseInput(testLines)
     solve("Test result", testInput, ::biggestRectSize)
-    solve("Test 2 result", testInput, ::solve2ForReal)
+    solve("Test 2 result", testInput, ::solveButSlow)
+    solve("Test 2 altern", testInput, ::biggestLimitedRectSize)
 
     val lines = readInput2025("Day09")
     val input = parseInput(lines)
     solve("Result", input, ::biggestRectSize)
-    solve("Result 2", input, ::solve2ForReal)
+    solve("Result 2", input, ::biggestLimitedRectSize)
+    solve("Result 2 slow", input, ::solveButSlow)
 }
 
-private fun solve2ForReal(input: List<Pair<Int, Int>>): Long {
+private fun solveButSlow(input: List<Pair<Int, Int>>): Long {
+    val q = createRectangles(input)
     val maxX = input.asSequence().map { it.first }.max()
     val maxY = input.asSequence().map { it.second }.max()
     val perimeter = perimeter(input)
-    val comp = Comparator.comparing<Rect, Long> { it.area }
-    val q = PriorityQueue(comp.reversed())
-    for (i in 0..<input.size) {
-        val (x1, y1) = input[i]
-        for (j in i + 1..<input.size) {
-            val (x2, y2) = input[j]
-            val r = Rect(x1, y1, x2, y2)
-            q.add(r)
-        }
-    }
     var result = q.poll()
     while (!result.isValidWithRespectTo(input, perimeter, maxX, maxY)) {
         result = q.poll()
     }
-    return result.area
-}
-
-private fun biggestLimitedRectSizeManual(input: List<Pair<Int, Int>>): Long {
-    val perimeter = perimeter(input)
-    val fillPoint = determineFillPoint(perimeter)
-    fill(perimeter, fillPoint)
-
-    val comp = Comparator.comparing<Rect, Long> { it.area }
-    val q = PriorityQueue(comp.reversed())
-    for (i in 0..<input.size) {
-        val (x1, y1) = input[i]
-        for (j in i + 1..<input.size) {
-            val (x2, y2) = input[j]
-            val r = Rect(x1, y1, x2, y2)
-            q.add(r)
-        }
-    }
-
-    var result = q.poll()
-    while (!result.containedIn(perimeter)) {
-        result = q.poll()
-    }
-
     return result.area
 }
 
@@ -91,60 +60,41 @@ private fun perimeter(input: List<Pair<Int, Int>>): HashSet<Pair<Int, Int>> {
     return points
 }
 
-private fun fill(points: MutableSet<Pair<Int, Int>>, fillPoint: Pair<Int, Int>) {
-    val fq: Queue<Pair<Int, Int>> = LinkedList()
-    fq.offer(fillPoint)
-    while (fq.isNotEmpty()) {
-        val current = fq.poll()
-        if (points.contains(current)) {
-            continue
-        }
-        points.add(current)
-        val (x, y) = current
-        fq.run {
-            fun offerIf(element: Pair<Int, Int>) {
-                if (!points.contains(element)) {
-                    offer(element)
-                }
-            }
-            offerIf(x + 1 to y)
-            offerIf(x - 1 to y)
-            offerIf(x to y + 1)
-            offerIf(x to y - 1)
-        }
-    }
-}
-
-private fun determineFillPoint(points: Set<Pair<Int, Int>>): Pair<Int, Int> {
-    val limitX = points.asSequence().map { it.first }.max()
-    val limitY = points.asSequence().map { it.second }.max()
-
-    val x = limitX / 2
-    var crossed = false
-    for (y in 1..limitY) {
-        val current = x to y
-        if (points.contains(current)) {
-            crossed = true
-        } else if (crossed) {
-            return current
-        }
-    }
-    return -1 to -1
-}
-
 private fun biggestLimitedRectSize(input: List<Pair<Int, Int>>): Long {
+    val q = createRectangles(input)
+
     val path = Path2D.Float().also {
+        it.windingRule = Path2D.WIND_NON_ZERO
         val (x0, y0) = input[0]
         it.moveTo(x0.toFloat(), y0.toFloat())
         for (i in 1..<input.size) {
             val (x, y) = input[i]
             it.lineTo(x.toFloat(), y.toFloat())
         }
-        it.lineTo(x0.toFloat(), y0.toFloat())
-        it.windingRule = Path2D.WIND_NON_ZERO
         it.closePath()
     }
     val a = Area(path)
+
+    while (q.isNotEmpty()) {
+        val r = q.poll()
+        val xx = r.tlX.toFloat()
+        val yy = r.tlY.toFloat()
+        val width = r.brX - xx
+        val height = r.brY - yy
+        val r2d = Rectangle2D.Float(xx, yy, width, height)
+        if (a.contains(r2d)) {
+            return r.area
+        }
+    }
+    return -1L
+}
+
+private fun biggestRectSize(input: List<Pair<Int, Int>>): Long {
+    val q = createRectangles(input)
+    return q.peek().area
+}
+
+private fun createRectangles(input: List<Pair<Int, Int>>): PriorityQueue<Rect> {
     val comp = Comparator.comparing<Rect, Long> { it.area }
     val q = PriorityQueue(comp.reversed())
     for (i in 0..<input.size) {
@@ -152,32 +102,10 @@ private fun biggestLimitedRectSize(input: List<Pair<Int, Int>>): Long {
         for (j in i + 1..<input.size) {
             val (x2, y2) = input[j]
             val r = Rect(x1, y1, x2, y2)
-            val r2d =
-                Rectangle2D.Float(
-                    r.tlX.toFloat() + 0.1f,
-                    r.tlY.toFloat() + 0.1f,
-                    r.width.toFloat() - 0.2f,
-                    r.height.toFloat() - 0.2f
-                )
-            if (a.contains(r2d)) {
-                q.add(r)
-            }
+            q.add(r)
         }
     }
-    return q.peek().area
-}
-
-private fun biggestRectSize(input: List<Pair<Int, Int>>): Long {
-    val comp = Comparator.comparing<Rect, Long> { it.area }
-    val q = PriorityQueue(comp.reversed())
-    for (i in 0..<input.size) {
-        val (x1, y1) = input[i]
-        for (j in i + 1..<input.size) {
-            val (x2, y2) = input[j]
-            q.add(Rect(x1, y1, x2, y2))
-        }
-    }
-    return q.peek().area
+    return q
 }
 
 class Rect(x1: Int, y1: Int, x2: Int, y2: Int) {
