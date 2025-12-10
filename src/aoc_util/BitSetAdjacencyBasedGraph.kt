@@ -7,7 +7,8 @@ import java.util.*
 class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> {
     private var nextId = 0
     private val vertexToIdMap: MutableMap<V, Int> = HashMap()
-    private val idToVertexMap: MutableMap<Int, V> = HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<V>().create()
+    private val idToVertexMap: MutableMap<Int, V> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<V>().create()
     private val idToAdjacencies: MutableMap<Int, MutableSet<Int>> =
         HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableSet<Int>>().create()
     private val idToBackwardAdjacencies: MutableMap<Int, MutableSet<Int>> =
@@ -265,6 +266,24 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         override fun visitVertex(vertex: V) {
             currentInnerList.add(vertex)
         }
+    }
+
+    inner class DepthVisitor : BitSetAdjacencyBasedGraph<V>.SearchVisitor() {
+        private val internalDepth = HashTableBasedMapBuilder.useIntKey().useIntValue().create()
+        val depth: Map<Int, Int>
+            get() = internalDepth
+
+        var currentDepth = -1
+
+        override fun visitRoot(root: V) {
+            currentDepth = 0
+        }
+
+        override fun visitEdge(edge: BitSetAdjacencyBasedGraph<V>.Edge, from: V, to: V) {
+            val fromDepth: Int = internalDepth[from.getId()] ?: -2
+            internalDepth[to.getId()] = fromDepth + 1
+        }
+
     }
 
     /**
