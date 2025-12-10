@@ -2,6 +2,7 @@ package aoc_util
 
 import de.dreamcube.hornet_queen.list.PrimitiveLongArrayList
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.round
 
 fun performRun(
@@ -175,7 +176,7 @@ fun singleGenomeMutation(
         } else {
             delta = 0L
         }
-        result.add(long + delta)
+        result.add(abs(long + delta))
     }
     return result
 }

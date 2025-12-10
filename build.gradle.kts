@@ -21,4 +21,5 @@ repositories {
 
 dependencies {
     implementation("de.dreamcube:hornet-queen:0.3.0")
+//    implementation("org.ejml:ejml-all:0.44.0")
 }
