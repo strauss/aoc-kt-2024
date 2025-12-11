@@ -1,9 +1,6 @@
 package aoc_2025
 
-import aoc_util.BitSetAdjacencyBasedGraph
-import aoc_util.RecursiveDfs
-import aoc_util.readInput2025
-import aoc_util.solve
+import aoc_util.*
 import java.util.*
 
 fun main() {
@@ -19,13 +16,16 @@ fun main() {
 }
 
 private fun countPathsMultiple(graph: BitSetAdjacencyBasedGraph<String>): Long {
-    var backwardEdges = getBackwardEdges(graph, "svr")
-    val upperBound = countPaths(graph, "svr", "out", backwardEdges)
+    var backwardEdges: Set<Pair<String, String>> = setOf() //getBackwardEdges(graph, "svr")
+    val dfs = ExhaustiveDfs(graph)
+    dfs.execute("svr", "out", setOf())
+    val upperBound = dfs.getResult().size
+//        countPaths(graph, "svr", "out", backwardEdges)
     println("Upper bound: $upperBound")
     val part1 = countPaths(graph, "svr", "fft", backwardEdges)//, setOf("dac", "out"))
-    backwardEdges = getBackwardEdges(graph, "fft")
+//    backwardEdges = getBackwardEdges(graph, "fft")
     val part2 = countPaths(graph, "fft", "dac", backwardEdges)//, setOf("svr", "out"))
-    backwardEdges = getBackwardEdges(graph, "dac")
+//    backwardEdges = getBackwardEdges(graph, "dac")
     val part3 = countPaths(graph, "dac", "out", backwardEdges)//, setOf("svr", "dac"))
     val result = part1 * part2 * part3
 
