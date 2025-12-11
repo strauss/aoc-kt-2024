@@ -62,6 +62,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
 
     fun countVertices() = vertexToIdMap.size
 
+    fun countEdges(): Int = idToAdjacencies.values.sumOf { it.size }
+
     fun V.getId(): Int = vertexToIdMap[this] ?: -1
 
     operator fun get(id: Int): V? = idToVertexMap[id]
@@ -273,15 +275,14 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         val depth: Map<Int, Int>
             get() = internalDepth
 
-        var currentDepth = -1
-
         override fun visitRoot(root: V) {
-            currentDepth = 0
+            internalDepth[root.getId()] = 0
         }
 
-        override fun visitEdge(edge: BitSetAdjacencyBasedGraph<V>.Edge, from: V, to: V) {
-            val fromDepth: Int = internalDepth[from.getId()] ?: -2
-            internalDepth[to.getId()] = fromDepth + 1
+        override fun visitTreeEdge(edge: BitSetAdjacencyBasedGraph<V>.Edge, from: V, to: V) {
+            val fromDepth: Int = internalDepth[from.getId()] ?: 0
+            val currentDepth = internalDepth[to.getId()] ?: 0
+            internalDepth[to.getId()] = currentDepth.coerceAtLeast(fromDepth + 1)
         }
 
     }
