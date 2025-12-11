@@ -3,21 +3,29 @@ package aoc_util
 import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 
+// TODO: make it work or toss it away
 class ExhaustiveDfs<V>(val graph: BitSetAdjacencyBasedGraph<V>) {
-    private val result: MutableList<List<Int>> = ArrayList()
+    private val intermediateResults: MutableMap<Int, MutableList<List<Int>>> = HashMap()
+    private val computedSet: MutableSet<Pair<Int, Int>> = HashSet()
+
     private var currentPath = Path()
 
-    fun getResult(): List<List<Int>> {
-        val r = ArrayList<List<Int>>()
-        r.addAll(result)
-        return r
+    fun getResult(v: V): List<List<Int>> {
+        graph.run {
+            return intermediateResults[v.getId()] ?: listOf()
+        }
     }
 
     fun execute(v: V, goal: V, blacklist: Set<V>) {
+        internalExecute(v, goal, blacklist)
+    }
+
+    fun internalExecute(v: V, goal: V, blacklist: Set<V>) {
         graph.run {
             val vId = v.getId()
             currentPath.add(vId)
-            for (n in v.adjacencies()) {
+            val adj = v.adjacencies()
+            for (n in adj) {
                 if (blacklist.contains(n)) {
                     continue
                 }
@@ -25,21 +33,30 @@ class ExhaustiveDfs<V>(val graph: BitSetAdjacencyBasedGraph<V>) {
                 if (currentPath.visited(nId)) {
                     continue
                 }
+                if (computedSet.contains(vId to nId)) {
+                    continue
+                }
                 if (n == goal) {
-                    val rPath = PrimitiveIntArrayList()
-                    rPath.addAll(currentPath.path)
-                    result.add(rPath)
+                    currentPath.add(nId)
+                    val allPaths = currentPath.extractAllPaths()
+                    allPaths.forEach { (from: Int, newPath: List<Int>) ->
+                        val iResults: MutableList<List<Int>> = intermediateResults.getOrPut(from) { ArrayList() }
+                        iResults.add(newPath)
+                    }
+                    currentPath.removeLast()
                     continue
                 }
 
-                execute(v, goal, blacklist)
+                internalExecute(n, goal, blacklist)
+
+                computedSet.add(vId to nId)
             }
             currentPath.removeLast()
         }
     }
 
     class Path() {
-        val path = PrimitiveIntArrayList()
+        private val path = PrimitiveIntArrayList()
         private val visited = PrimitiveIntSetB()
 
         fun add(vId: Int) {
@@ -56,6 +73,19 @@ class ExhaustiveDfs<V>(val graph: BitSetAdjacencyBasedGraph<V>) {
 
         fun visited(vId: Int): Boolean {
             return visited.contains(vId)
+        }
+
+        fun extractAllPaths(): List<Pair<Int, List<Int>>> {
+            return buildList {
+                for (idx in 0..path.size - 2) {
+                    val current = path[idx]
+                    val innerList = PrimitiveIntArrayList()
+                    for (nidx in idx..<path.size) {
+                        innerList.add(path[nidx])
+                    }
+                    add(current to innerList)
+                }
+            }
         }
     }
 }

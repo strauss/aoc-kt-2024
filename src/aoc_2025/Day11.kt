@@ -4,10 +4,13 @@ import aoc_util.*
 import java.util.*
 
 fun main() {
-    val testLines = readInput2025("Day11_test2")
-    val testGraph = parseInput(testLines)
-    solve("Test result", testGraph, ::countPathsSingle)
-//    solve("Test 2 result", testGraph, ::countPathsMultiple)
+    val testLines1 = readInput2025("Day11_test")
+    val testGraph1 = parseInput(testLines1)
+    solve("Test result", testGraph1, ::countPathsSingle)
+
+    val testLines2 = readInput2025("Day11_test2")
+    val testGraph2 = parseInput(testLines2)
+    solve("Test 2 result", testGraph2, ::countPathsMultiple)
 
     val lines = readInput2025("Day11")
     val graph = parseInput(lines)
@@ -15,76 +18,78 @@ fun main() {
     solve("Result2", graph, ::countPathsMultiple)
 }
 
-private fun countPathsMultiple(graph: BitSetAdjacencyBasedGraph<String>): Long {
-    var backwardEdges: Set<Pair<String, String>> = setOf() //getBackwardEdges(graph, "svr")
+private fun countPathsExhaustively(graph: BitSetAdjacencyBasedGraph<String>): Long {
+    // TODO make this solution also work
     val dfs = ExhaustiveDfs(graph)
-    dfs.execute("svr", "out", setOf())
-    val upperBound = dfs.getResult().size
-//        countPaths(graph, "svr", "out", backwardEdges)
-    println("Upper bound: $upperBound")
-    val part1 = countPaths(graph, "svr", "fft", backwardEdges)//, setOf("dac", "out"))
-//    backwardEdges = getBackwardEdges(graph, "fft")
-    val part2 = countPaths(graph, "fft", "dac", backwardEdges)//, setOf("svr", "out"))
-//    backwardEdges = getBackwardEdges(graph, "dac")
-    val part3 = countPaths(graph, "dac", "out", backwardEdges)//, setOf("svr", "dac"))
+    dfs.execute("svr", "out", setOf()) //setOf("dac", "out"))
+    val part1 = dfs.getResult("svr").size
+    println(part1)
+
+    return -1
+}
+
+private fun countPathsMultiple(graph: BitSetAdjacencyBasedGraph<String>): Long {
+    // well ... that takes some time, but is not too bad
+    val warshall = Warshall(graph)
+    warshall.execute()
+    println("Warshall done")
+    val part1 = countPaths(graph, "svr", "fft", warshall)
+    val part2 = countPaths(graph, "fft", "dac", warshall)
+    val part3 = countPaths(graph, "dac", "out", warshall)
     val result = part1 * part2 * part3
 
     return result
 }
 
+// that one was interesting for the analysis, but is not that useful, maybe I should move it to the graph part
 private fun getBackwardEdges(graph: BitSetAdjacencyBasedGraph<String>, start: String): HashSet<Pair<String, String>> {
     val dfs = RecursiveDfs(graph)
-    val backwardEdges = HashSet<Pair<String, String>>()
+    val treeEdges = HashSet<Pair<String, String>>()
+    val forwardArcs = HashSet<Pair<String, String>>()
+    val backwardArcs = HashSet<Pair<String, String>>()
+    val crossLinks = HashSet<Pair<String, String>>()
+
     val detector = object : RecursiveDfs.DfsVisitor<String>(dfs) {
+        override fun visitTreeEdge(from: String, to: String) {
+            treeEdges.add(from to to)
+        }
+
+        override fun visitForwardArc(from: String, to: String) {
+            forwardArcs.add(from to to)
+        }
+
         override fun visitBackwardArc(from: String, to: String) {
-            backwardEdges.add(from to to)
+            backwardArcs.add(from to to)
         }
 
         override fun visitCrossLink(from: String, to: String) {
-            backwardEdges.add(from to to)
+            crossLinks.add(from to to)
         }
     }
     dfs.execute(start, detector)
-    println("Backward edges svr: ${backwardEdges.size}")
-    return backwardEdges
+    return backwardArcs
 }
 
 private fun countPathsSingle(graph: BitSetAdjacencyBasedGraph<String>): Long {
-    return countPaths(graph, "you", "out")
+    return countPaths(graph, "you", "out", null)
 }
 
 private fun countPaths(
     graph: BitSetAdjacencyBasedGraph<String>,
     start: String,
     goal: String,
-    backwardEdges: Set<Pair<String, String>> = setOf(),
-    blacklist: Set<String> = setOf()
+    reachability: Warshall<String>?
 ): Long {
     var result = 0L
     graph.run {
         val q = ArrayDeque<String>()
-        val visitedCrossLinks = HashSet<Pair<String, String>>()
-        val visitedEdges = HashMap<Pair<String, String>, Int>()
-
         q.addFirst(start)
         while (q.isNotEmpty()) {
             val current = q.removeFirst()
             for (next in current.adjacencies()) {
-                val edge = current to next
-                if (backwardEdges.contains(edge)) {
-                    if (visitedCrossLinks.contains(edge)) {
-                        continue
-                    }
-                    visitedCrossLinks.add(edge)
-                }
-//                val visitedTimes = visitedEdges[edge] ?: 0
-//                if (visitedTimes > countVertices() * 5) {
-//                    continue
-//                }
-//                visitedEdges[edge] = visitedTimes + 1
                 if (next == goal) {
                     result += 1
-                } else if (next != start && !blacklist.contains(next)) {
+                } else if (next != start && reachability?.isReachable(current, goal) ?: true) {
                     q.offer(next)
                 }
             }
