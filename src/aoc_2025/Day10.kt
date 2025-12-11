@@ -1,8 +1,14 @@
 package aoc_2025
 
+import aoc_util.createModel
 import aoc_util.extractInts
 import aoc_util.readInput2025
 import aoc_util.solve
+import com.google.ortools.Loader
+import com.google.ortools.sat.CpSolver
+import com.google.ortools.sat.CpSolverStatus
+import com.google.ortools.sat.IntVar
+import com.google.ortools.sat.LinearExpr
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 import java.util.*
 import kotlin.math.abs
@@ -10,12 +16,12 @@ import kotlin.math.ceil
 import kotlin.math.max
 
 fun main() {
+    Loader.loadNativeLibraries()
     val testLines = readInput2025("Day10_test")
     val testInput = parseInput(testLines)
     solve("Test Result", testInput, ::totalFewestPresses)
 
     val nTestInput = testInput.map { simplifyConfiguration(it) }
-//    showInputs(testInput, nTestInput)
     solve("Test 2 Result", nTestInput, ::totalFewestJoltagePresses)
 
     val lines = readInput2025("Day10")
@@ -24,25 +30,8 @@ fun main() {
 
     val nInput = input.map { simplifyConfiguration(it) }
     val nsInput = nInput.sortedBy { it.joltages.size }
-//    for (i in nsInput.indices) {
-//        val current = nsInput[i]
-//        if (current.buttons.size < current.joltages.size) {
-//            println("$i: $current")
-//        }
-//    }
 
     solve("Result 2", nsInput, ::totalFewestJoltagePresses)
-}
-
-private fun showInputs(
-    testInput: List<Configuration>,
-    nTestInput: List<Configuration>
-) {
-    for (i in testInput.indices) {
-        println("Old: ${testInput[i]}")
-        println("New: ${nTestInput[i]}")
-        println()
-    }
 }
 
 private fun simplifyConfiguration(conf: Configuration): Configuration {
@@ -112,11 +101,9 @@ private fun removalAllowed(buttons: List<List<Int>>, j: Int, i: Int): Boolean {
 
 private fun totalFewestJoltagePresses(confs: List<Configuration>): Long {
     var result = 0L
-    var idx = 0
     confs.forEach {
-        result += fewestJoltagePressesAStar(it)
-        println(idx)
-        idx += 1
+//        result += fewestJoltagePressesAStar(it)
+        result += fewestJoltagePressesCheated(it)
     }
     println()
     return result
@@ -128,6 +115,28 @@ private fun totalFewestPresses(confs: List<Configuration>): Int {
         result += fewestPresses(it)
     }
     return result
+}
+
+private fun fewestJoltagePressesCheated(conf: Configuration): Long {
+    val goal = conf.joltages.toIntArray()
+    val vectors = conf.buttons.map { list: List<Int> ->
+        val array = IntArray(conf.joltages.size)
+        for (i in list) {
+            array[i] = 1
+        }
+        return@map array
+    }.toTypedArray()
+
+    val (model, x: Array<IntVar>) = createModel(vectors, goal)
+    model.minimize(LinearExpr.sum(x)) // goal ... VERY important :-)
+    val solver = CpSolver()
+    val status = solver.solve(model)
+    val solution: Long = if (status == CpSolverStatus.OPTIMAL || status == CpSolverStatus.FEASIBLE) {
+        solver.objectiveValue().toLong()
+    } else {
+        -1L
+    }
+    return solution
 }
 
 private fun fewestJoltagePressesAStar(conf: Configuration): Int {
@@ -254,11 +263,6 @@ private fun fewestPresses(conf: Configuration): Int {
         }
     }
     return depth[goal] ?: -1
-}
-
-private fun fewestJoltagePresses2(conf: Configuration): Int {
-
-    TODO()
 }
 
 data class Configuration(val indicator: BitSet, val buttons: List<List<Int>>, val joltages: List<Int>)
