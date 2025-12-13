@@ -1,4 +1,4 @@
-package aoc_util
+package aoc_util.graph
 
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import java.util.*

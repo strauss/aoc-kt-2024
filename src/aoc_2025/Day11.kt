@@ -1,6 +1,11 @@
 package aoc_2025
 
-import aoc_util.*
+import aoc_util.graph.BitSetAdjacencyBasedGraph
+import aoc_util.graph.ExhaustiveDfs
+import aoc_util.graph.RecursiveDfs
+import aoc_util.graph.Warshall
+import aoc_util.readInput2025
+import aoc_util.solve
 import java.util.*
 import kotlin.time.measureTime
 

@@ -1,11 +1,12 @@
-package aoc_util
+package aoc_util.graph
 
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 
 class WeightedGraph<V>(private val directed: Boolean = false) : Iterable<V> {
     private var nextId = 0
     private val vertexToIdMap: MutableMap<V, Int> = HashMap()
-    private val idToVertexMap: MutableMap<Int, V> = HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<V>().create()
+    private val idToVertexMap: MutableMap<Int, V> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<V>().create()
     private val idToWeightedAdjacencies: MutableMap<Int, MutableMap<Int, Double>> =
         HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableMap<Int, Double>>().create()
 
@@ -90,8 +91,9 @@ class WeightedGraph<V>(private val directed: Boolean = false) : Iterable<V> {
 
     fun V.isolate() = this.adjacencies().forEach { disconnect(it.first) }
 
-    fun V.isConnectedWith(vertex: V): Boolean = idToWeightedAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
-            (!directed && idToWeightedAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
+    fun V.isConnectedWith(vertex: V): Boolean =
+        idToWeightedAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
+                (!directed && idToWeightedAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
 
 
 }

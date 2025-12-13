@@ -1,6 +1,10 @@
 package aoc_2024
 
-import aoc_util.*
+import aoc_util.PrimitiveMultiDimArray
+import aoc_util.graph.Dijkstra
+import aoc_util.graph.WeightedGraph
+import aoc_util.parseInputAsMultiDimArray
+import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.list.PrimitiveIntArrayList
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
@@ -61,7 +65,8 @@ private fun findBestSeats(maze: PrimitiveMultiDimArray<Char>, graph: WeightedGra
 
         // determine path
         val target = if (cost1 < cost2) target1 else target2
-        val fieldsOfBestPaths = fieldsOfBestPaths(this, visitor.extendedParent, target, PrimitiveIntSetB(), setOf(Pair(startRow, startCol)))
+        val fieldsOfBestPaths =
+            fieldsOfBestPaths(this, visitor.extendedParent, target, PrimitiveIntSetB(), setOf(Pair(startRow, startCol)))
         fieldsOfBestPaths.size
     }
 }
@@ -91,7 +96,8 @@ private fun fieldsOfBestPaths(
 }
 
 private class DijkstraExtension<V>(dijkstra: Dijkstra<V>) : Dijkstra.DijkstraVisitor<V>(dijkstra) {
-    val extendedParent: MutableMap<Int, MutableList<Int>> = HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableList<Int>>().create()
+    val extendedParent: MutableMap<Int, MutableList<Int>> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableList<Int>>().create()
 
     override fun visitEdge(from: V, to: V, weight: Double) {
         dijkstra.graph.run {

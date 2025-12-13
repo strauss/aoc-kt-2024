@@ -1,6 +1,6 @@
 package aoc_2023
 
-import aoc_util.BitSetAdjacencyBasedGraph
+import aoc_util.graph.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2023
 import aoc_util.solve
 

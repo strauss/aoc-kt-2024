@@ -1,6 +1,6 @@
 package aoc_2024
 
-import aoc_util.BitSetAdjacencyBasedGraph
+import aoc_util.graph.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2024
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 import java.util.*
@@ -74,7 +74,11 @@ private fun getFormulaFor(operations: Map<String, Operation>, output: String): S
 
 }
 
-private fun swapOutputConnections(graph: BitSetAdjacencyBasedGraph<Operation>, first: String, second: String): BitSetAdjacencyBasedGraph<Operation> {
+private fun swapOutputConnections(
+    graph: BitSetAdjacencyBasedGraph<Operation>,
+    first: String,
+    second: String
+): BitSetAdjacencyBasedGraph<Operation> {
     val copyGraph = graph.createCopy()
     // find vertices
     var firstVertex: Operation? = null
@@ -252,7 +256,8 @@ private fun evaluate(graph: BitSetAdjacencyBasedGraph<Operation>, assignment: Ma
         }
 
         // evaluate the result
-        val finalResultKeys: List<String> = results.keys.asSequence().filter { it.startsWith("z") }.sorted().toList().reversed()
+        val finalResultKeys: List<String> =
+            results.keys.asSequence().filter { it.startsWith("z") }.sorted().toList().reversed()
         assembleLongFromBits(finalResultKeys, results)
     }
 }

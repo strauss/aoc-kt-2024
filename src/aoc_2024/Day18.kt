@@ -1,7 +1,7 @@
 package aoc_2024
 
-import aoc_util.BitSetAdjacencyBasedGraph
 import aoc_util.Coordinate
+import aoc_util.graph.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2024
 
 fun main() {
@@ -54,7 +54,11 @@ private fun searchPathAfter(
         }
         val parent: MutableMap<Coordinate, Coordinate> = HashMap()
         val countVertices = object : BitSetAdjacencyBasedGraph<Coordinate>.SearchVisitor() {
-            override fun visitTreeEdge(edge: BitSetAdjacencyBasedGraph<Coordinate>.Edge, from: Coordinate, to: Coordinate) {
+            override fun visitTreeEdge(
+                edge: BitSetAdjacencyBasedGraph<Coordinate>.Edge,
+                from: Coordinate,
+                to: Coordinate
+            ) {
                 parent[to] = from
             }
         }

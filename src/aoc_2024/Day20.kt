@@ -1,6 +1,11 @@
 package aoc_2024
 
-import aoc_util.*
+import aoc_util.Coordinate
+import aoc_util.PrimitiveMultiDimArray
+import aoc_util.graph.Dijkstra
+import aoc_util.graph.WeightedGraph
+import aoc_util.parseInputAsMultiDimArray
+import aoc_util.readInput2024
 import kotlin.math.abs
 
 fun main() {

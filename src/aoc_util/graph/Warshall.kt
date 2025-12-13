@@ -1,4 +1,4 @@
-package aoc_util
+package aoc_util.graph
 
 import java.util.*
 

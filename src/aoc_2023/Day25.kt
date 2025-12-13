@@ -1,7 +1,7 @@
 package aoc_2023
 
-import aoc_util.BitSetAdjacencyBasedGraph
 import aoc_util.CombinatorialIterator
+import aoc_util.graph.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2023
 import de.dreamcube.hornet_queen.set.PrimitiveIntSetB
 import java.util.*
@@ -35,9 +35,10 @@ private fun shatter(graph: BitSetAdjacencyBasedGraph<String>): Int {
         }
     }
 
-    val treeEdges = edges.sortedWith { e1: BitSetAdjacencyBasedGraph<String>.Edge, e2: BitSetAdjacencyBasedGraph<String>.Edge ->
-        (treeEdgeCount[e2] ?: 0).compareTo(treeEdgeCount[e1] ?: 0)
-    }
+    val treeEdges =
+        edges.sortedWith { e1: BitSetAdjacencyBasedGraph<String>.Edge, e2: BitSetAdjacencyBasedGraph<String>.Edge ->
+            (treeEdgeCount[e2] ?: 0).compareTo(treeEdgeCount[e1] ?: 0)
+        }
 
     val firstCount = treeEdgeCount[treeEdges.first()] ?: 0
 
@@ -70,7 +71,10 @@ private fun shatter(graph: BitSetAdjacencyBasedGraph<String>): Int {
     return if (result.size == 2) result[0].size * result[1].size else 0
 }
 
-private fun bruteForce(graph: BitSetAdjacencyBasedGraph<String>, edges: List<BitSetAdjacencyBasedGraph<String>.Edge>): List<List<String>> {
+private fun bruteForce(
+    graph: BitSetAdjacencyBasedGraph<String>,
+    edges: List<BitSetAdjacencyBasedGraph<String>.Edge>
+): List<List<String>> {
     println("Bruteforcing result for ${edges.size}")
     val bfIterator = CombinatorialIterator(edges, 3, true)
     var result: List<List<String>>? = null

@@ -1,6 +1,6 @@
 package aoc_2024
 
-import aoc_util.BitSetAdjacencyBasedGraph
+import aoc_util.graph.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2024
 
 fun main() {
@@ -53,7 +53,10 @@ private fun testSomethingElse(graph: BitSetAdjacencyBasedGraph<String>) {
     println("All cliques 5 vertices: ${allCliqueFiveVertices.size}")
 }
 
-private fun getCliquesOfNextSize(graph: BitSetAdjacencyBasedGraph<String>, cliques: Set<Set<String>>): Set<Set<String>> {
+private fun getCliquesOfNextSize(
+    graph: BitSetAdjacencyBasedGraph<String>,
+    cliques: Set<Set<String>>
+): Set<Set<String>> {
     val out: MutableSet<Set<String>> = mutableSetOf()
     graph.run {
         for (clique: Set<String> in cliques) {
@@ -75,7 +78,10 @@ private fun getCliquesOfNextSize(graph: BitSetAdjacencyBasedGraph<String>, cliqu
     return out
 }
 
-private fun getCliquesOfThree(graph: BitSetAdjacencyBasedGraph<String>, predicate: (String) -> Boolean = { true }): Set<Set<String>> {
+private fun getCliquesOfThree(
+    graph: BitSetAdjacencyBasedGraph<String>,
+    predicate: (String) -> Boolean = { true }
+): Set<Set<String>> {
     val result = mutableSetOf<Set<String>>()
     graph.run {
         for (v: String in vertexIterator()) {
