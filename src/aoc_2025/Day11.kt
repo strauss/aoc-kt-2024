@@ -2,6 +2,7 @@ package aoc_2025
 
 import aoc_util.*
 import java.util.*
+import kotlin.time.measureTime
 
 fun main() {
     val testLines1 = readInput2025("Day11_test")
@@ -31,8 +32,8 @@ private fun countPathsExhaustively(graph: BitSetAdjacencyBasedGraph<String>): Lo
 private fun countPathsMultiple(graph: BitSetAdjacencyBasedGraph<String>): Long {
     // well ... that takes some time, but is not too bad
     val warshall = Warshall(graph)
-    warshall.execute()
-    println("Warshall done")
+    val duration = measureTime { warshall.execute() }
+    println("Warshall done (Duration: $duration)")
     val part1 = countPaths(graph, "svr", "fft", warshall)
     val part2 = countPaths(graph, "fft", "dac", warshall)
     val part3 = countPaths(graph, "dac", "out", warshall)

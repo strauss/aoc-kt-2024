@@ -364,3 +364,9 @@ fun lcm(a: Long, b: Long): Long {
     val gcd: Long = gcd(a, b)
     return (a * b).absoluteValue / gcd
 }
+
+fun combine(high: Int, low: Int): Long = high.toLong().shl(32) or (low.toLong() and 0xFFFF_FFFFL)
+
+fun Long.getHigh(): Int = (this ushr 32).toInt()
+
+fun Long.getLow(): Int = (this and 0xFFFF_FFFFL).toInt()

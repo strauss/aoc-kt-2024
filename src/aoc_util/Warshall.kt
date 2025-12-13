@@ -1,31 +1,33 @@
 package aoc_util
 
+import java.util.*
+
 class Warshall<V>(val graph: BitSetAdjacencyBasedGraph<V>) {
-    private val reachable = HashSet<Pair<Int, Int>>()
+    private val reachable = Array(graph.countVertices()) { BitSet(graph.countVertices()) }
 
     fun execute() {
         graph.run {
-            vertexIterator().forEach {
-                val id = it.getId()
-                reachable.add(id to id)
+            val vertexList = vertexIterator().asSequence().toList()
+
+            for (v in vertexList) {
+                val vId = v.getId()
+                reachable[vId].set(vId)
             }
 
             getEdges().forEach { edge ->
-                reachable.add(edge.alpha.getId() to edge.omega.getId())
+                reachable[edge.alpha.getId()].set(edge.omega.getId())
             }
 
-            vertexIterator().forEach { v ->
+            // optimized for loop (two instead of three)
+            for (v in vertexList) {
                 val vId = v.getId()
-                vertexIterator().forEach { u ->
+                val rowV = reachable[vId]
+
+                for (u in vertexList) {
                     val uId = u.getId()
-                    val r1 = uId to vId
-                    vertexIterator().forEach { w ->
-                        val wId = w.getId()
-                        val r2 = vId to wId
-                        val r3 = uId to wId
-                        if (reachable.contains(r1) && reachable.contains(r2) && !reachable.contains(r3)) {
-                            reachable.add(r3)
-                        }
+                    val rowU = reachable[uId]
+                    if (rowU[vId]) {
+                        rowU.or(rowV)
                     }
                 }
             }
@@ -34,7 +36,7 @@ class Warshall<V>(val graph: BitSetAdjacencyBasedGraph<V>) {
 
     fun isReachable(from: V, to: V): Boolean {
         graph.run {
-            return reachable.contains(from.getId() to to.getId())
+            return reachable[from.getId()][to.getId()]
         }
     }
 }

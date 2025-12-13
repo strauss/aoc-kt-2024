@@ -9,10 +9,10 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
     private val vertexToIdMap: MutableMap<V, Int> = HashMap()
     private val idToVertexMap: MutableMap<Int, V> =
         HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<V>().create()
-    private val idToAdjacencies: MutableMap<Int, MutableSet<Int>> =
-        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableSet<Int>>().create()
-    private val idToBackwardAdjacencies: MutableMap<Int, MutableSet<Int>> =
-        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<MutableSet<Int>>().create()
+    private val idToAdjacencies: MutableMap<Int, BitSet> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<BitSet>().create()
+    private val idToBackwardAdjacencies: MutableMap<Int, BitSet> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<BitSet>().create()
     val size
         get() = vertexToIdMap.size
 
@@ -22,14 +22,14 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         copy.vertexToIdMap.putAll(vertexToIdMap)
         copy.idToVertexMap.putAll(idToVertexMap)
         idToAdjacencies.entries.forEach { entry ->
-            val value = PrimitiveIntSetB()
+            val value = BitSet()
             copy.idToAdjacencies[entry.key] = value
-            value.addAll(entry.value)
+            value.or(entry.value) // add all
         }
         idToBackwardAdjacencies.forEach { entry ->
-            val value = PrimitiveIntSetB()
+            val value = BitSet()
             copy.idToBackwardAdjacencies[entry.key] = value
-            value.addAll(entry.value)
+            value.or(entry.value) // add all
         }
         return copy
     }
@@ -42,9 +42,9 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         nextId += 1
         vertexToIdMap[vertex] = id
         idToVertexMap[id] = vertex
-        idToAdjacencies[id] = PrimitiveIntSetB()
+        idToAdjacencies[id] = BitSet()
         if (directed) {
-            idToBackwardAdjacencies[id] = PrimitiveIntSetB()
+            idToBackwardAdjacencies[id] = BitSet()
         }
         return id
     }
@@ -62,7 +62,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
 
     fun countVertices() = vertexToIdMap.size
 
-    fun countEdges(): Int = idToAdjacencies.values.sumOf { it.size }
+    // that is probably incorrect
+    fun countEdges(): Int = idToAdjacencies.values.sumOf { it.cardinality() }
 
     fun V.getId(): Int = vertexToIdMap[this] ?: -1
 
@@ -79,11 +80,11 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         val vertexId = this.getId()
         val otherVertexId = vertex.getId()
         if (vertexId != -1 && otherVertexId != -1) {
-            idToAdjacencies[vertexId]?.add(otherVertexId)
+            idToAdjacencies[vertexId]?.set(otherVertexId)
             if (directed) {
-                idToBackwardAdjacencies[otherVertexId]?.add(vertexId)
+                idToBackwardAdjacencies[otherVertexId]?.set(vertexId)
             } else {
-                idToAdjacencies[otherVertexId]?.add(vertexId)
+                idToAdjacencies[otherVertexId]?.set(vertexId)
             }
         }
     }
@@ -94,11 +95,11 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         val vertexId = this.getId()
         val otherVertexId = vertex.getId()
         if (vertexId != -1 && otherVertexId != -1) {
-            idToAdjacencies[vertexId]?.remove(otherVertexId)
+            idToAdjacencies[vertexId]?.set(otherVertexId, false)
             if (directed) {
-                idToBackwardAdjacencies[otherVertexId]?.remove(vertexId)
+                idToBackwardAdjacencies[otherVertexId]?.set(vertexId, false)
             } else {
-                idToAdjacencies[otherVertexId]?.remove(vertexId)
+                idToAdjacencies[otherVertexId]?.set(vertexId, false)
             }
         }
     }
@@ -123,33 +124,57 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         return edges
     }
 
-    fun V.getDegree(): Int = idToAdjacencies[getId()]?.size ?: 0
+    fun V.getDegree(): Int = idToAdjacencies[getId()]?.cardinality() ?: 0
 
-    fun V.getInDegree(): Int = if (directed) idToBackwardAdjacencies[getId()]?.size ?: 0 else getDegree()
+    fun V.getInDegree(): Int = if (directed) idToBackwardAdjacencies[getId()]?.cardinality() ?: 0 else getDegree()
 
     fun V.adjacencies(): Iterator<V> {
-        val adjacentIndexes: Set<Int> = idToAdjacencies[this.getId()] ?: emptySet()
-        return object : Iterator<V> {
-            val internalIterator = adjacentIndexes.iterator()
-            override fun hasNext(): Boolean = internalIterator.hasNext()
-            override fun next(): V = idToVertexMap[internalIterator.next()] ?: throw NoSuchElementException()
-        }
+        val adjacencies = idToAdjacencies[this.getId()] ?: BitSet()
+        return this@BitSetAdjacencyBasedGraph.BitSetBasedVertexIterator(adjacencies)
     }
 
     fun V.backwardAdjacencies(): Iterator<V> {
-        if (directed) {
-            val adjacentIndexes: Set<Int> = idToBackwardAdjacencies[this.getId()] ?: emptySet()
-            return object : Iterator<V> {
-                val internalIterator = adjacentIndexes.iterator()
-                override fun hasNext(): Boolean = internalIterator.hasNext()
-                override fun next(): V = idToVertexMap[internalIterator.next()] ?: throw NoSuchElementException()
-            }
+        return if (directed) {
+            val backwardAdjacencies = idToBackwardAdjacencies[this.getId()] ?: BitSet()
+            this@BitSetAdjacencyBasedGraph.BitSetBasedVertexIterator(backwardAdjacencies)
         } else {
-            return adjacencies()
+            adjacencies()
         }
     }
 
-    fun V.countAdjecencies(): Int = idToAdjacencies[this.getId()]?.size ?: 0
+    private inner class BitSetBasedVertexIterator(val vertexIdSet: BitSet) : Iterator<V> {
+        private var nextProbePosition = 0
+        private var nextSetBit = -1
+        private var lastDeliveredBit = -1
+
+        override fun hasNext(): Boolean {
+            if (nextProbePosition < 0) {
+                // handles overflows
+                return false
+            }
+            internalDetermineNextSetBit()
+            return nextProbePosition >= 0 && nextSetBit >= 0
+        }
+
+        private fun internalDetermineNextSetBit() {
+            if (nextSetBit == -1) {
+                nextSetBit = vertexIdSet.nextSetBit(nextProbePosition)
+            }
+        }
+
+        override fun next(): V {
+            internalDetermineNextSetBit()
+            if (nextSetBit < 0) {
+                throw NoSuchElementException()
+            }
+            nextProbePosition = nextSetBit + 1
+            lastDeliveredBit = nextSetBit
+            nextSetBit = -1
+            return idToVertexMap[lastDeliveredBit] ?: throw NoSuchElementException()
+        }
+    }
+
+    fun V.countAdjecencies(): Int = idToAdjacencies[this.getId()]?.cardinality() ?: 0
 
     fun V.isolate() {
         this.adjacencies().forEach { this.disconnect(it) }
@@ -157,8 +182,8 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
     }
 
 
-    fun V.isConnectedWith(vertex: V): Boolean = idToAdjacencies[this.getId()]?.contains(vertex.getId()) ?: false ||
-            (!directed && idToAdjacencies[vertex.getId()]?.contains(this.getId()) ?: false)
+    fun V.isConnectedWith(vertex: V): Boolean = idToAdjacencies[this.getId()]?.get(vertex.getId()) ?: false ||
+            (!directed && idToAdjacencies[vertex.getId()]?.get(this.getId()) ?: false)
 
     fun V.isConnectedWithAll(vertices: Set<V>): Boolean = vertices.all { it.isConnectedWith(this) }
 
@@ -334,15 +359,4 @@ class BitSetAdjacencyBasedGraph<V>(val directed: Boolean = false) : Iterable<V> 
         }
 
     }
-}
-
-fun main() {
-    val testGraph = BitSetAdjacencyBasedGraph<String>(true)
-    testGraph.run {
-        introduceVertex("Hallo")
-        introduceVertex("Welt")
-        "Hallo".connect("Welt")
-        "Welt".remove()
-    }
-    println(testGraph)
 }
