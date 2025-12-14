@@ -5,20 +5,20 @@ import aoc_util.readInput2023
 fun main() {
     val testLines = readInput2023("Day07_test")
     val testInput = parseLines(testLines)
-    val testResult = solve(testInput, Hand.handComp)
+    val testResult = camelPoker(testInput, Hand.handComp)
     println("Test result: $testResult")
-    val test2Result = solve(testInput, Hand.jHandComp)
+    val test2Result = camelPoker(testInput, Hand.jHandComp)
     println("Test 2 result: $test2Result")
 
     val lines = readInput2023("Day07")
     val input = parseLines(lines)
-    val result = solve(input, Hand.handComp)
+    val result = camelPoker(input, Hand.handComp)
     println("Result: $result")
-    val result2 = solve(input, Hand.jHandComp)
+    val result2 = camelPoker(input, Hand.jHandComp)
     println("Result 2: $result2")
 }
 
-private fun solve(hands: List<Hand>, comp: Comparator<Hand>): Long {
+private fun camelPoker(hands: List<Hand>, comp: Comparator<Hand>): Long {
     val sortedHands = hands.sortedWith(comp)
     var result = 0L
     var currentRank = 1
