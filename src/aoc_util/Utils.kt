@@ -17,11 +17,12 @@ fun readInput2024(name: String) = internalReadInput(name, 2024)
 
 fun readInput2025(name: String) = internalReadInput(name, 2025)
 
-fun <In, Out> solve(prefix: String, input: In, with: (In) -> Out) {
+fun <In, Out> solve(prefix: String, input: In, with: (In) -> Out): Out {
     val (result, duration) = measureTimedValue {
         with(input)
     }
     println("$prefix: $result (Duration: $duration)")
+    return result
 }
 
 /**

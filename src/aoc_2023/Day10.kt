@@ -1,114 +1,223 @@
 package aoc_2023
 
 import aoc_util.Primitive2DCharArray
-import aoc_util.graph.BitSetAdjacencyBasedGraph
 import aoc_util.readInput2023
 import aoc_util.solve
+import java.awt.geom.Area
+import java.awt.geom.Path2D
+import java.awt.geom.Rectangle2D
+import java.util.BitSet
+import kotlin.collections.ArrayDeque
 
 private const val connectNorth = "|LJ"
 private const val connectEast = "-LF"
 private const val connectSouth = "|7F"
 private const val connectWest = "-J7"
 
+private const val scale = 10
+
 fun main() {
     val testLines = readInput2023("Day10_test")
-//    val (testGraph, tsId) = parseAsGraph(testLines)
-//    solve("Test result", testGraph) {
-//        part1(it, tsId)
-//    }
     val testArray = parseAsArray(testLines)
     solve("Test result", testArray, ::solve1)
+    val lines2 = readInput2023("Day10_test_a")
+    val array2 = parseAsArray(lines2)
+    solve("Test 2 result", array2, ::solve2)
 
     val lines = readInput2023("Day10")
-//    val (graph, sId) = parseAsGraph(lines)
-//    solve("Result", graph) {
-//        part1(it, sId)
-//    }
     val array = parseAsArray(lines)
     solve("Result", array, ::solve1)
+    solve("Result 2", array, ::solve2)
+}
 
+private fun solve2(array: Primitive2DCharArray): Int {
+    val start = findStart(array)
+    // create path2D -> area
+    val search = ArraySearch(array, SearchType.DFS)
+    val visitor = PerimeterVisitor(array.height, array.width)
+    search.execute(start, visitor)
+    val perimeter = visitor.perimeter
+    val onPerimeter = visitor.visited
+    val checkArea = Area(perimeter)
+
+//    val img = BufferedImage(array.width * scale, array.height * scale, BufferedImage.TYPE_INT_RGB)
+//    (img.graphics as Graphics2D).run {
+//        color = Color.red
+//        draw(checkArea)
+//    }
+//    ImageIO.write(img, "PNG", File("out.png"))
+
+    val arrayOut = Primitive2DCharArray(array.height, array.width)
+    var result = 0
+    // then create a small square for each cell and count those inside... ignore those on the perimeter
+    for (row in 0..<array.height) {
+        for (col in 0..<array.width) {
+            if (onPerimeter[row][col]) {
+                arrayOut[row, col] = array[row, col]
+                continue
+            }
+            val r2d = Rectangle2D.Float(col.toFloat() * scale, row.toFloat() * scale, scale.toFloat(), scale.toFloat())
+            if (checkArea.contains(r2d)) {
+                result += 1
+                arrayOut[row, col] = 'O'
+            } else {
+                arrayOut[row, col] = '.'
+            }
+        }
+    }
+
+    println(arrayOut)
+
+    return result
+}
+
+private interface Day10Visitor {
+    fun visitStart(start: Pair<Int, Int>)
+    fun visit(cell: Pair<Int, Int>)
+    fun done()
+}
+
+private class PerimeterVisitor(height: Int, val width: Int) : Day10Visitor {
+    val visited = Array(height) { BitSet(width) }
+    val perimeter = Path2D.Float()
+
+    override fun visitStart(start: Pair<Int, Int>) {
+        visited[start] = true
+        val (row, col) = start
+        perimeter.moveTo(col.toFloat() * scale, row.toFloat() * scale)
+    }
+
+    override fun visit(cell: Pair<Int, Int>) {
+        visited[cell] = true
+        val (row, col) = cell
+        println("row: $row | col: $col")
+        perimeter.lineTo(col.toFloat() * scale, row.toFloat() * scale)
+    }
+
+    override fun done() {
+        perimeter.closePath()
+    }
+}
+
+private enum class SearchType {
+    BFS, DFS
+}
+
+private class ArraySearch(val array: Primitive2DCharArray, val type: SearchType = SearchType.BFS) {
+    val depth = HashMap<Pair<Int, Int>, Int>()
+    var maxDepth = 0
+
+    fun execute(start: Pair<Int, Int>, visitor: Day10Visitor? = null) {
+        depth.clear()
+        val (rowS, colS) = start
+
+        val currentDepth = 0
+        depth[start] = currentDepth
+        visitor?.visitStart(start)
+
+        val q = ArrayDeque<Pair<Int, Int>>()
+
+        val nextStates = ArrayList<Pair<Int, Int>>()
+        // check north
+        val rowNorth = rowS - 1
+        if (rowNorth >= 0 && array[rowNorth, colS] in connectSouth) {
+            nextStates.add(rowNorth to colS)
+        }
+        // check east
+        val colEast = colS + 1
+        if (colEast < array.width && array[rowS, colEast] in connectWest) {
+            nextStates.add(rowS to colEast)
+        }
+        // check south
+        val rowSouth = rowS + 1
+        if (rowSouth < array.height && array[rowSouth, colS] in connectNorth) {
+            nextStates.add(rowSouth to colS)
+        }
+        // check west
+        val colWest = colS - 1
+        if (colWest >= 0 && array[rowS, colWest] in connectEast) {
+            nextStates.add(rowS to colWest)
+        }
+
+        when (type) {
+            SearchType.BFS -> {
+                for (idx in 0..<nextStates.size) {
+                    val nextState = nextStates[idx]
+                    depth[nextState] = 1
+                    visitor?.visit(nextState)
+                    q.addLast(nextState)
+                }
+            }
+
+            SearchType.DFS -> {
+                // when DFS, we only want one state
+                val nextState = nextStates[0]
+                depth[nextState] = 1
+                visitor?.visit(nextState)
+                q.addLast(nextStates[0])
+            }
+        }
+
+        // start search
+        while (q.isNotEmpty()) {
+            val current = when (type) {
+                SearchType.BFS -> q.removeFirst()
+                SearchType.DFS -> q.removeLast()
+            }
+            val currentDepth = depth[current] ?: 0
+            maxDepth = maxDepth.coerceAtLeast(currentDepth)
+            val (row, col) = current
+            val currentChar = array[row, col]
+            if (currentChar in connectNorth) {
+                val north = (row - 1) to col
+                if (depth[north] == null) {
+                    depth[north] = currentDepth + 1
+                    visitor?.visit(north)
+                    q.addLast(north)
+                }
+            }
+            if (currentChar in connectEast) {
+                val east = row to col + 1
+                if (depth[east] == null) {
+                    depth[east] = currentDepth + 1
+                    visitor?.visit(east)
+                    q.addLast(east)
+                }
+            }
+            if (currentChar in connectSouth) {
+                val south = row + 1 to col
+                if (depth[south] == null) {
+                    depth[south] = currentDepth + 1
+                    visitor?.visit(south)
+                    q.addLast(south)
+                }
+            }
+            if (currentChar in connectWest) {
+                val west = row to col - 1
+                if (depth[west] == null) {
+                    depth[west] = currentDepth + 1
+                    visitor?.visit(west)
+                    q.addLast(west)
+                }
+            }
+        }
+        visitor?.done()
+    }
 }
 
 private fun solve1(array: Primitive2DCharArray): Int {
     // search the S
     val start = findStart(array)
-    val (rowS, colS) = start
-    val depth = HashMap<Pair<Int, Int>, Int>()
-//    val visited = Array(array.height) { BitSet(array.width) }
-    val currentDepth = 0
-    depth[start] = currentDepth
 
-    val q = ArrayDeque<Pair<Int, Int>>()
+    val search = ArraySearch(array)
+    search.execute(start)
 
-    // check north
-    val rowNorth = rowS - 1
-    if (rowNorth >= 0 && array[rowNorth, colS] in connectSouth) {
-        val north = rowNorth to colS
-        depth[north] = 1
-        q.addLast(north)
-    }
-    // check east
-    val colEast = colS + 1
-    if (colEast < array.width && array[rowS, colEast] in connectWest) {
-        val east = rowS to colEast
-        depth[east] = 1
-        q.addLast(east)
-    }
-    // check south
-    val rowSouth = rowS + 1
-    if (rowSouth < array.height && array[rowSouth, colS] in connectNorth) {
-        val south = rowSouth to colS
-        depth[south] = 1
-        q.addLast(south)
-    }
-    // check west
-    val colWest = colS - 1
-    if (colWest >= 0 && array[rowS, colWest] in connectEast) {
-        val west = rowS to colWest
-        depth[west] = 1
-        q.addLast(west)
-    }
+    return search.maxDepth
+}
 
-    var maxDepth = 0
-
-    // start search
-    while (q.isNotEmpty()) {
-        val current = q.removeFirst()
-        val currentDepth = depth[current]!!
-        maxDepth = maxDepth.coerceAtLeast(currentDepth)
-        val (row, col) = current
-        val currentChar = array[row, col]
-        if (currentChar in connectNorth) {
-            val north = (row - 1) to col
-            if (depth[north] == null) {
-                depth[north] = currentDepth + 1
-                q.addLast(north)
-            }
-        }
-        if (currentChar in connectEast) {
-            val east = row to col + 1
-            if (depth[east] == null) {
-                depth[east] = currentDepth + 1
-                q.addLast(east)
-            }
-        }
-        if (currentChar in connectSouth) {
-            val south = row + 1 to col
-            if (depth[south] == null) {
-                depth[south] = currentDepth + 1
-                q.addLast(south)
-            }
-        }
-        if (currentChar in connectWest) {
-            val west = row to col - 1
-            if (depth[west] == null) {
-                depth[west] = currentDepth + 1
-                q.addLast(west)
-            }
-        }
-    }
-
-    return maxDepth
+private operator fun Array<BitSet>.set(index: Pair<Int, Int>, value: Boolean) {
+    val (row, col) = index
+    this[row][col] = value
 }
 
 private fun findStart(array: Primitive2DCharArray): Pair<Int, Int> {
@@ -122,72 +231,6 @@ private fun findStart(array: Primitive2DCharArray): Pair<Int, Int> {
     return -1 to -1
 }
 
-private fun part1(graph: BitSetAdjacencyBasedGraph<V>, startId: Int): Int {
-    graph.run {
-        val dv = DepthVisitor()
-        val start = get(startId)
-        start?.let {
-            search(BitSetAdjacencyBasedGraph.SearchType.BFS, dv, it, false)
-        }
-        return dv.depth.values.max()
-    }
-}
 
 private fun parseAsArray(lines: List<String>) = Primitive2DCharArray.parseFromLines(lines, '.')
 
-private data class V(val row: Int, val col: Int, val c: Char)
-
-private fun parseAsGraph(lines: List<String>): Pair<BitSetAdjacencyBasedGraph<V>, Int> {
-    val width = lines.asSequence().map { it.length }.max()
-    val graph = BitSetAdjacencyBasedGraph<V>(directed = false)
-    // create vertices and place them in array
-    for (row in lines.indices) {
-        val line = lines[row]
-        for (col in line.indices) {
-            graph.run {
-                val id = introduceVertex(V(row, col, line[col]))
-                assert(id == row * width + col)
-            }
-        }
-    }
-    // materialize edges
-    var startId: Int = -1
-    graph.run {
-        var start: V? = null
-        forEach { v: V ->
-            val edgeCount = countEdges()
-            if (connectNorth.contains(v.c)) {
-                val nId = (v.row - 1) * width + v.col
-                get(nId)?.let { v.connect(it) }
-            }
-            if (connectEast.contains(v.c)) {
-                val eId = v.row * width + v.col + 1
-                get(eId)?.let { v.connect(it) }
-            }
-            if (connectSouth.contains(v.c)) {
-                val sId = (v.row + 1) * width + v.col
-                get(sId)?.let { v.connect(it) }
-            }
-            if (connectWest.contains(v.c)) {
-                val wId = v.row * width + v.col - 1
-                get(wId)?.let { v.connect(it) }
-            }
-            if (v.c == 'S') {
-                start = v
-            }
-        }
-//        start?.let { s ->
-//            val nId = (s.row - 1) * width + s.col
-//            get(nId)?.let { if (connectSouth.contains(it.c)) s.connect(it) }
-//            val eId = s.row * width + s.col + 1
-//            get(eId)?.let { if (connectWest.contains(it.c)) s.connect(it) }
-//            val sId = (s.row + 1) * width + s.col
-//            get(sId)?.let { if (connectNorth.contains(it.c)) s.connect(it) }
-//            val wId = s.row * width - 1
-//            get(wId)?.let { if (connectEast.contains(it.c)) s.connect(it) }
-//            startId = s.getId()
-//        }
-        startId = start?.getId() ?: -1
-    }
-    return graph to startId
-}
