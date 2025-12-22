@@ -7,17 +7,15 @@ fun main() {
     val testLines = readInput2023("Day12_test")
 //    solve("Test complexity", testLines, ::analyseComplexity)
     val testInput = parseInput(testLines)
-    solve("Test result", testInput, ::solve1)
-    solve("Test reSult", testInput, ::solve2)
+//    solve("Test result", testInput, ::solve1)
+//    solve("Test reSult", testInput, ::solve2)
 
     val lines = readInput2023("Day12")
 //    solve("Complexity", lines, ::analyseComplexity)
     val input = parseInput(lines)
-    solve("Result", input, ::solve1)
-    solve("ReSult", input, ::solve2)
-//    detectErrors(input)
-
-//    main2()
+//    solve("Result", input, ::solve1)
+//    solve("ReSult", input, ::solve2)
+    main2()
 }
 
 private val cache: MutableMap<Pair<String, List<Int>>, Long> = HashMap()
@@ -83,6 +81,18 @@ private fun parseInput(lines: List<String>): List<Pair<String, List<Int>>> {
         out.add(split[0] to split[1].split(",").map { it.toInt() })
     }
     return out
+}
+
+private fun List<Pair<String, List<Int>>>.unfoldInput(): List<Pair<String, List<Int>>> = map { it.unfold() }
+
+private fun Pair<String, List<Int>>.unfold(): Pair<String, List<Int>> = first.unfold() to second.unfold()
+
+private fun String.unfold(): String = "$this?$this?$this?$this?$this"
+
+private fun List<Int>.unfold(): List<Int> = buildList {
+    for (i in 1..5) {
+        addAll(this@unfold)
+    }
 }
 
 private fun analyseComplexity(lines: List<String>): Int {
@@ -211,6 +221,17 @@ private object AnswerCache {
             }
             cache[key] = result
             return result
+        } else if (firstPattern.length < firstSize) {
+            if ('#' in firstPattern) {
+                // the whole pattern is impossible
+                cache[key] = 0L
+                return 0L
+            } else {
+                val remainingPattern: String = subPatterns.drop(1).joinToString(".")
+                val result = combinations(remainingPattern, distribution)
+                cache[key] = result
+                return result
+            }
         }
 
         // If the last pattern can be easily stripped away, we do just that
@@ -226,6 +247,17 @@ private object AnswerCache {
             }
             cache[key] = result
             return result
+        } else if (lastPattern.length < lastSize) {
+            if ('#' in lastPattern) {
+                // the whole pattern is impossible
+                cache[key] = 0L
+                return 0L
+            } else {
+                val remainingPattern: String = subPatterns.take(subPatterns.size - 1).joinToString(".")
+                val result = combinations(remainingPattern, distribution)
+                cache[key] = result
+                return result
+            }
         }
 
         // TODO: here lies one error. Sometimes they do not need to line up and pure wildcard patterns can be removed for still being viable
@@ -233,10 +265,38 @@ private object AnswerCache {
 
         // If the sub patterns and distributions actually do line up, we try to strip match them
         if (subPatterns.size == distribution.size) {
-            var result = 0L
-            result += handleEqualSize(subPatterns, distribution)
-            cache[key] = result
-            return result
+            val (_, wildcard) = analyzeSubPatterns(subPatterns)
+            var noReductionPossible = true
+            for (depth in 1..wildcard.size) {
+                val iterator = CombinatorialIterator(wildcard, depth, distinct = true)
+                iterator.iterate { combination ->
+                    if (combination.isSorted()) {
+                        val reducedSubPatterns = buildList {
+                            for (idx in subPatterns.indices) {
+                                if (idx !in combination) {
+                                    add(subPatterns[idx])
+                                }
+                            }
+                        }
+                        val newPattern = reducedSubPatterns.joinToString(".")
+                        if (distribution.minPatternSize() <= newPattern.length) {
+                            noReductionPossible = false
+                            return@iterate // break
+                        }
+                    }
+                }
+                if (!noReductionPossible) {
+                    break
+                }
+            }
+
+            if (noReductionPossible) {
+                val result = handleEqualSize(subPatterns, distribution)
+                cache[key] = result
+                return result
+            }
+            // we are forced to search the hard way
+            return handleSmallerSize(subPatterns.joinToString("."), distribution)
         }
 
         if (subPatterns.size < distribution.size) {
@@ -253,19 +313,13 @@ private object AnswerCache {
     }
 
     private fun handleBiggerSize(subPatterns: List<String>, distribution: List<Int>): Long {
-        val enforced = BitSet()
-        val wildcard = HashSet<Int>()
-        for (idx in subPatterns.indices) {
-            if (subPatterns[idx].contains('#')) {
-                enforced.set(idx)
-            } else {
-                wildcard.add(idx)
-            }
-        }
+        val (enforced, wildcard) = analyzeSubPatterns(subPatterns)
         if (enforced.cardinality() > distribution.size) {
             // If wee need more patterns than distribution parts, we are done
             return 0
         }
+
+        // This is probably wrong, but maybe not ... I'm not sure
         if (enforced.cardinality() == distribution.size) {
             // If the enforced patterns are our only option, we go with them
             val enforcedSubPatterns = buildList {
@@ -279,28 +333,80 @@ private object AnswerCache {
             val result = combinations(newPattern, distribution)
             return result
         }
-        val required = distribution.size - enforced.cardinality()
-        val remove = subPatterns.size - distribution.size
-        val remove2 = wildcard.size - required
-        assert(remove < wildcard.size)
-        assert(remove2 == remove)
 
-        val iterator = CombinatorialIterator(wildcard, remove, distinct = true)
-        var result = 0L
-        iterator.iterate { combination ->
-            if (combination.isSorted()) {
-                val reducedSubPatterns = buildList {
-                    for (idx in subPatterns.indices) {
-                        if (idx !in combination) {
-                            add(subPatterns[idx])
-                        }
-                    }
-                }
-                val newPattern = reducedSubPatterns.joinToString(".")
-                result += combinations(newPattern, distribution)
+        val newPatterns = LinkedList<String>()
+
+        // This is also not correct ... maybe we can optimize differently by assigning bigger chunks to their respective bigger distributions
+//        for (idx in subPatterns.indices) {
+//            val currentSubPattern = subPatterns[idx]
+//            if ('#' !in currentSubPattern) {
+//                val newPattern = subPatterns.drop(idx + 1).joinToString(".")
+//                if (distribution.minPatternSize() <= newPattern.length) {
+//                    newPatterns.add(newPattern)
+//                } else {
+//                    break
+//                }
+//            } else {
+//                break
+//            }
+//        }
+//        for (idx in subPatterns.indices) {
+//            val rIdx = subPatterns.lastIndex - idx
+//            val currentSubPattern = subPatterns[rIdx]
+//            if ('#' !in currentSubPattern) {
+//                val newPattern = subPatterns.take(rIdx - 1).joinToString(".")
+//                if (distribution.minPatternSize() <= newPattern.length) {
+//                    newPatterns.add(newPattern)
+//                } else {
+//                    break
+//                }
+//            } else {
+//                break
+//            }
+//        }
+
+        // This is not correct: We are not allowed to leave out in the middle just like that
+//        for (depth in 1..wildcard.size) {
+//            val iterator = CombinatorialIterator(wildcard, depth, distinct = true)
+//            iterator.iterate { combination ->
+//                if (combination.isSorted()) {
+//                    val reducedSubPatterns = buildList {
+//                        for (idx in subPatterns.indices) {
+//                            if (idx !in combination) {
+//                                add(subPatterns[idx])
+//                            }
+//                        }
+//                    }
+//                    val newPattern = reducedSubPatterns.joinToString(".")
+//                    if (distribution.minPatternSize() <= newPattern.length) {
+//                        newSubPatterns.add(newPattern)
+//                    }
+//                }
+//            }
+//        }
+
+        if (newPatterns.isNotEmpty()) {
+            var result = 0L
+            for (newPattern in newPatterns) {
+                val currentResult = combinations(newPattern, distribution)
+                result += currentResult
+            }
+            return result
+        }
+        return handleSmallerSize(subPatterns.joinToString("."), distribution)
+    }
+
+    private fun analyzeSubPatterns(subPatterns: List<String>): Pair<BitSet, HashSet<Int>> {
+        val enforced = BitSet()
+        val wildcard = HashSet<Int>()
+        for (idx in subPatterns.indices) {
+            if (subPatterns[idx].contains('#')) {
+                enforced.set(idx)
+            } else {
+                wildcard.add(idx)
             }
         }
-        return result
+        return Pair(enforced, wildcard)
     }
 
     private fun handleEqualSize(subPatterns: List<String>, distribution: List<Int>): Long {
@@ -338,10 +444,10 @@ private object AnswerCache {
             }
             // if we matched, we also try leaving out an outer wildcard only
             if (onlyWildcards.matches(subPatterns[0])) {
-//                result += combinations(subPatterns.drop(1).joinToString("."), distribution)
+                result += combinations(subPatterns.drop(1).joinToString("."), distribution)
             }
             if (onlyWildcards.matches(subPatterns[subPatterns.lastIndex])) {
-//                result += combinations(subPatterns.take(subPatterns.size - 1).joinToString("."), distribution)
+                result += combinations(subPatterns.take(subPatterns.size - 1).joinToString("."), distribution)
             }
             return result
         }
@@ -476,6 +582,13 @@ private object AnswerCache {
 }
 
 private fun main2() {
-    val result = AnswerCache.combinations("??.?#??##???", listOf(1, 6))
-    println(result)
+    // Error detected for '?#??.???.?.?.????' and '[4, 1, 1, 3]'. Expected result was 16, but we got 14
+    val pattern = "????.######..#####.".unfold()
+    val distribution = listOf(1, 6, 5).unfold()
+    println(pattern)
+    println(distribution)
+    val result = AnswerCache.combinations(pattern, distribution)
+    println("My result     : $result")
+    val correctResult = countOne(pattern, distribution)
+    println("Correct result: $correctResult")
 }
