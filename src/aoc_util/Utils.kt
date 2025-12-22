@@ -371,3 +371,94 @@ fun combine(high: Int, low: Int): Long = high.toLong().shl(32) or (low.toLong() 
 fun Long.getHigh(): Int = (this ushr 32).toInt()
 
 fun Long.getLow(): Int = (this and 0xFFFF_FFFFL).toInt()
+
+fun String.replaceLast(oldChar: Char, newChar: Char): String = this.reversed().replaceFirst(oldChar, newChar).reversed()
+
+/**
+ * Creates a new string with the character at the given [position] replaced with [newChar].
+ */
+fun String.changePosition(newChar: Char, position: Int): String {
+    return replaceRange(position, position + 1, newChar.toString())
+}
+
+fun String.changePositions(newChar: Char, vararg positions: Int): String {
+    val chars = this.toCharArray()
+    for (i in positions) {
+        chars[i] = newChar
+    }
+    return String(chars)
+}
+
+/**
+ * Creates a sequence of [List]s based on [this] list. The given [indexes] mark the separators. The separator is placed
+ * to the right of the actual element. Out of bound indexes are ignored. The resulting sublists are never empty.
+ * Duplicate indexes are ignored.
+ *
+ * Examples: Given the list `[0,1,2,3,4,5]`. Then the following results will be given.
+ *
+ * - [indexes] = `[0]` -> `[[0], [1,2,3,4,5]]`
+ * - [indexes] = `[1,4]` -> `[[0,1], [2,3,4], [5]]`
+ * - [indexes] = `[]` -> `[[0,1,2,3,4,5]]`
+ * - [indexes] = `[-1]` -> `[[0,1,2,3,4,5]]`
+ * - [indexes] = `[5]` -> `[[0,1,2,3,4,5]]`
+ * - [indexes] = `[6]` -> `[[0,1,2,3,4,5]]`
+ * - [indexes] = `[-10, 3, 10]` -> `[[0,1,2,3], [4,5]]`
+ * - [indexes] = `[1,3,3,3,4]` -> `[[0,1], [2,3], [4], [5]]`
+ */
+fun <T> List<T>.separateList(vararg indexes: Int): List<List<T>> {
+    val list = this
+    val indexesToUse = IntArray(indexes.size)
+    System.arraycopy(indexes, 0, indexesToUse, 0, indexes.size)
+    indexesToUse.sort()
+    return buildList {
+        var currentIndex = 0
+        for (idx in indexesToUse) {
+            if (idx !in 0..<list.size) {
+                continue
+            }
+            val currentList: MutableList<T> = ArrayList()
+            while (currentIndex <= idx) {
+                currentList.add(list[currentIndex])
+                currentIndex += 1
+            }
+            if (currentList.isNotEmpty()) { // "empty" can happen, if duplicates are included in the indexes.
+                add(currentList)
+            }
+        }
+        if (currentIndex < list.size) {
+            val currentList: MutableList<T> = ArrayList()
+            while (currentIndex < list.size) {
+                currentList.add(list[currentIndex])
+                currentIndex += 1
+            }
+            add(currentList)
+        }
+    }
+}
+
+fun List<Int>.isSorted(): Boolean {
+    if (isEmpty() || size == 1) {
+        return true
+    }
+    for (idx in 1..<this.size) {
+        if (get(idx - 1) > get(idx)) {
+            return false
+        }
+    }
+    return true
+}
+
+fun <T> List<T>.allSeparations(size: Int): List<List<List<T>>> {
+    if (size <= 0) {
+        return listOf()
+    }
+    val list = this
+    return buildList {
+        val iterator = CombinatorialIterator(0..list.size - 2, size - 1, distinct = true)
+        iterator.iterate { combination: List<Int> ->
+            if (combination.isSorted()) {
+                add(list.separateList(*combination.toIntArray()))
+            }
+        }
+    }
+}
