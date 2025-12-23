@@ -113,6 +113,19 @@ class Primitive2DCharArray(val height: Int, val width: Int) {
     }
 
     /**
+     * Creates a copy of this [aoc_util.Primitive2DCharArray].
+     */
+    fun copy(): Primitive2DCharArray {
+        val result = Primitive2DCharArray(height, width)
+        for (oldRow in 0..<height) {
+            for (oldCol in 0..<width) {
+                result[oldRow, oldCol] = this[oldRow, oldCol]
+            }
+        }
+        return result
+    }
+
+    /**
      * String representation. If it was parsed, it reflects the input data. It uses '\n' as line break.
      */
     override fun toString(): String = buildString {
