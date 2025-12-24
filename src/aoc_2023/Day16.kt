@@ -4,7 +4,12 @@ import aoc_util.Primitive2DCharArray
 import aoc_util.readInput2023
 import aoc_util.solve
 import java.util.BitSet
+import kotlin.Int
+import kotlin.Pair
 import kotlin.collections.ArrayDeque
+import kotlin.rotateLeft
+import kotlin.rotateRight
+import kotlin.to
 
 
 private const val V_SPLIT = '|'
@@ -108,7 +113,7 @@ private fun searchPaths(array: Primitive2DCharArray, startState: SearchState = S
 }
 
 
-private enum class Direction(val delta: Pair<Int, Int>) {
+internal enum class Direction(val delta: Pair<Int, Int>) {
     NORTH(-1 to 0), EAST(0 to 1), SOUTH(1 to 0), WEST(0 to -1);
 
     fun reflectWithRightMirror(): Direction = when (this) {
