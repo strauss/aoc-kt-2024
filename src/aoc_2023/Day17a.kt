@@ -10,30 +10,35 @@ import aoc_util.solve
 fun main() {
     val testLines = readInput2023("Day17_test")
     val testInput = Primitive2DCharArray.parseFromLines(testLines)
-    solve("Test result", testInput, ::solveWithDijkstra)
-
-    val graph = makeMeGraph(testInput)
+    solve("Test result", testInput, ::solveNormalCrucible)
+    solve("Test 2 result", testInput, ::solveUltraCrucible)
 
     val lines = readInput2023("Day17")
     val input = Primitive2DCharArray.parseFromLines(lines)
-    solve("Result", input, ::solveWithDijkstra)
+    solve("Result", input, ::solveNormalCrucible)
+    solve("Result 2", input, ::solveUltraCrucible)
 
 }
 
-// TODO: write an alternative solution
-/*
- * - BFS from starting point with allowed operations in mind (this is the hard part)
- * - Create the graph while searching
- * - vertices with "row, col, dir"
- * - edges with "op, cost"
- */
+private fun solveUltraCrucible(array: Primitive2DCharArray): Int? {
+    val graph = makeMeGraph(array, 4, 10)
+    val start = LavaSearchState(0, 0, 0, Direction.EAST)
+    val goal = Coordinate(array.height - 1, array.width - 1)
+    return solveWithDijkstra(graph, start, goal)
+}
+
+private fun solveNormalCrucible(array: Primitive2DCharArray): Int? {
+    val graph = makeMeGraph(array)
+    val start = LavaSearchState(0, 0, 0, Direction.EAST)
+    val goal = Coordinate(array.height - 1, array.width - 1)
+    return solveWithDijkstra(graph, start, goal)
+}
 
 private fun solveWithDijkstra(
-    array: Primitive2DCharArray,
-    start: LavaSearchState = LavaSearchState(0, 0, 0, Direction.EAST),
-    goal: Coordinate = Coordinate(array.height - 1, array.width - 1)
+    graph: WeightedGraph<LavaSearchState>,
+    start: LavaSearchState,
+    goal: Coordinate
 ): Int? {
-    val graph = makeMeGraph(array)
     val dijkstra = Dijkstra(graph)
     val goalStatesVisitor = CollectGoalStatesVisitor(dijkstra) { it.row == goal.row && it.col == goal.col }
     dijkstra.execute(start, goalStatesVisitor)
@@ -43,7 +48,11 @@ private fun solveWithDijkstra(
     }
 }
 
-private fun makeMeGraph(array: Primitive2DCharArray, maxStraight: Int = 3): WeightedGraph<LavaSearchState> {
+private fun makeMeGraph(
+    array: Primitive2DCharArray,
+    minStraight: Int = 0,
+    maxStraight: Int = 3
+): WeightedGraph<LavaSearchState> {
     val graph = WeightedGraph<LavaSearchState>(directed = true)
 
     // create all vertices
@@ -63,10 +72,13 @@ private fun makeMeGraph(array: Primitive2DCharArray, maxStraight: Int = 3): Weig
         for (vertex in vertexIterator()) {
             val (row, col, s, dir) = vertex
             for (op in Operation.entries) {
-                val (nextDir, nextStraight) = nextDirAndStraight(dir, s, op)
-                if (nextStraight > maxStraight) {
+                if (s < minStraight && op != Operation.FORWARD) {
                     continue
                 }
+                if (s >= maxStraight && op == Operation.FORWARD) {
+                    continue
+                }
+                val (nextDir, nextStraight) = nextDirAndStraight(dir, s, op)
                 val (dRow, dCol) = nextDir.delta
                 val nextRow = row + dRow
                 val nextCol = col + dCol
