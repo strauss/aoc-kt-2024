@@ -54,14 +54,6 @@ private class ExcessiveDfs(val array: Primitive2DCharArray) {
     }
 }
 
-// TODO: write an alternative solution
-/*
- * - BFS from starting point with allowed operations in mind (this is the hard part)
- * - Create the graph while searching
- * - vertices with "row, col, dir"
- * - edges with "op, cost"
- */
-
 private fun searchOptimalHeatLoss(
     array: Primitive2DCharArray,
     start: LavaSearchState = LavaSearchState(0, 0, 0, Direction.EAST),
@@ -202,7 +194,7 @@ private fun performDijkstra(
     return cost
 }
 
-private fun nextDirAndStraight(
+internal fun nextDirAndStraight(
     currentDir: Direction,
     currentStraight: Int,
     op: Operation
@@ -226,7 +218,7 @@ internal data class LavaSearchState(
     val dir: Direction
 )
 
-private enum class Operation {
+internal enum class Operation {
     LEFT, RIGHT, FORWARD
 }
 
