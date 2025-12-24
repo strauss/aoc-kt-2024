@@ -10,11 +10,48 @@ fun main() {
     val testLines = readInput2023("Day17_test")
     val testInput = Primitive2DCharArray.parseFromLines(testLines)
     solve("Test result", testInput, ::searchOptimalHeatLoss)
+    solve("Test result", testInput, ::searchWithDfs)
 
     val lines = readInput2023("Day17")
     val input = Primitive2DCharArray.parseFromLines(lines)
 //    solve("Result", input, ::searchOptimalHeatLoss)
 
+}
+
+private fun searchWithDfs(array: Primitive2DCharArray): Int {
+    val dfs = ExcessiveDfs(array)
+    return dfs.dfs(LavaSearchState(0, 0, 0, Direction.EAST), Coordinate(array.height - 1, array.width - 1))
+}
+
+private class ExcessiveDfs(val array: Primitive2DCharArray) {
+    private val bestCost: MutableMap<LavaSearchState, Int> = HashMap()
+
+    fun dfs(currentState: LavaSearchState, goal: Coordinate): Int {
+        if (currentState.row == goal.row && currentState.col == goal.col) {
+            bestCost[currentState] = 0
+            return 0
+        }
+        val currentDir = currentState.dir
+        val currentStraight = currentState.straight
+        val myCosts: MutableList<Int> = ArrayList(3)
+        for (op: Operation in Operation.entries) {
+            val (nextDir, nextStraight) = nextDirAndStraight(currentDir, currentStraight, op)
+            val (dRow, dCol) = nextDir.delta
+            val nextRow = currentState.row + dRow
+            val nextCol = currentState.col + dCol
+            if (nextStraight <= 3 &&
+                nextRow in 0..<array.height && nextCol in 0..<array.width
+            ) { // only if next state is in bounds
+                val nextState = LavaSearchState(nextRow, nextCol, nextStraight, nextDir)
+                val costFromNext: Int = bestCost[nextState] ?: dfs(nextState, goal)
+                val myCost = costFromNext + array[nextState.row, nextState.col].digitToInt()
+                myCosts.add(myCost)
+            }
+        }
+        val myBestCost: Int = myCosts.minOrNull() ?: Integer.MAX_VALUE
+        bestCost[currentState] = myBestCost
+        return myBestCost
+    }
 }
 
 // TODO: write an alternative solution
@@ -37,12 +74,12 @@ private fun searchOptimalHeatLoss(
     // now we do A* with the precalculated heuristic
     val marker = HashSet<LavaSearchState>()
     val buffer = PriorityQueue<Pair<LavaSearchState, Int>>(Comparator.comparing { it.second })
-    val cost = HashMap<Coordinate, Int>()
+    val cost = HashMap<LavaSearchState, Int>()
     val parent = HashMap<LavaSearchState, LavaSearchState>()
 
     // prepare start state
     val startCoordinate = Coordinate(start.row, start.col)
-    cost[startCoordinate] = 0
+    cost[start] = 0
     buffer.offer(start to (heuristic[startCoordinate] ?: 0))
 
     // prepare target found
@@ -64,7 +101,7 @@ private fun searchOptimalHeatLoss(
         // follow-up states
         val currentDir = currentState.dir
         val currentStraight = currentState.straight
-        val costSoFar = cost[currentCoordinate]!! // if this is null, the algorithm is broken
+        val costSoFar = cost[currentState]!! // if this is null, the algorithm is broken
 
         for (op: Operation in Operation.entries) {
             val (nextDir, nextStraight) = nextDirAndStraight(currentDir, currentStraight, op)
@@ -74,13 +111,12 @@ private fun searchOptimalHeatLoss(
             if (nextStraight <= 3 &&
                 nextRow in 0..<array.height && nextCol in 0..<array.width
             ) { // only if next state is in bounds
-                val costKey = Coordinate(nextRow, nextCol)
+                val nextState = LavaSearchState(nextRow, nextCol, nextStraight, nextDir)
                 val nextCost = costSoFar + array[nextRow, nextCol].digitToInt()
-                if (nextCost < (cost[costKey] ?: Integer.MAX_VALUE)) {
-                    cost[costKey] = nextCost
-                    val nextState = LavaSearchState(nextRow, nextCol, nextStraight, nextDir)
+                if (nextCost < (cost[nextState] ?: Integer.MAX_VALUE)) {
+                    cost[nextState] = nextCost
                     parent[nextState] = currentState
-                    buffer.offer(nextState to nextCost + (heuristic[costKey] ?: 0))
+                    buffer.offer(nextState to nextCost + (heuristic[Coordinate(nextState.row, nextState.col)] ?: 0))
                 }
             }
         }
@@ -115,7 +151,7 @@ private fun searchOptimalHeatLoss(
         previous = state
     }
 
-    return cost[goal] ?: -1
+    return cost[target] ?: -1
 }
 
 private fun performDijkstra(
@@ -183,7 +219,7 @@ private fun nextDirAndStraight(
     return Pair(nextDir, nextStraight)
 }
 
-private data class LavaSearchState(
+internal data class LavaSearchState(
     val row: Int,
     val col: Int,
     val straight: Int,
