@@ -2,8 +2,15 @@ package aoc_2023
 
 import aoc_util.readInput2023
 import aoc_util.solve
+import java.awt.Color
+import java.awt.Graphics2D
+import java.awt.geom.Area
+import java.awt.geom.Path2D
+import java.awt.image.BufferedImage
+import java.io.File
 import java.util.TreeMap
 import java.util.TreeSet
+import javax.imageio.ImageIO
 import kotlin.collections.ArrayDeque
 import kotlin.math.abs
 
@@ -12,7 +19,7 @@ fun main() {
     val (testInput, test2Input) = parseInputPart1(testLines)
 //    solve("Test result", testInput, ::calculateAreaByFilling)
 //    solve("Test result", testInput, ::calculateAreaWithSweepLine)
-//    solve("Test 2 result", test2Input, ::calculateAreaWithSweepLine)
+    solve("Test 2 result", test2Input, ::calculateAreaWithSweepLine)
 
     val testPerimeter = setOf(
         0 at 0,
@@ -37,15 +44,50 @@ fun main() {
 
     val lines = readInput2023("Day18")
     val (input, input2) = parseInputPart1(lines)
-//    solve("Result", input, ::calculateAreaByFilling)
-    solve("Result", input, ::calculateAreaWithSweepLine)
-//    solve("Result", input2, ::calculateAreaWithSweepLine)
+    solve("Result", input, ::calculateAreaByFilling)
+    solve("Result", input) {
+        calculateAreaWithSweepLine(it, draw = false)
+    }
+    solve("Result", input2, ::calculateAreaWithSweepLine)
 }
 
-private fun calculateAreaWithSweepLine(instructions: List<Instruction>): Long {
+private fun calculateAreaWithSweepLine(instructions: List<Instruction>, draw: Boolean = false): Long {
     // create perimeter
     val perimeterResult = buildPerimeter(instructions, full = false)
+    if (draw) {
+        drawPerimeter(perimeterResult, 10)
+    }
     return sweepLine(perimeterResult.perimeter)
+}
+
+private fun drawPerimeter(perimeterResult: PerimeterResult, scale: Int) {
+    val (perimeter, minRow, maxRow, minCol, maxCol) = perimeterResult
+
+    val width = maxCol - minCol
+    val height = maxRow - minRow
+
+    val perimeterPath = Path2D.Float()
+    val perimeterIterator = perimeter.iterator()
+    val firstPoint = perimeterIterator.next()
+    perimeterPath.moveTo(firstPoint.col.toFloat() * scale, firstPoint.row.toFloat() * scale)
+    while (perimeterIterator.hasNext()) {
+        val nextPoint = perimeterIterator.next()
+        perimeterPath.lineTo(nextPoint.col.toFloat() * scale, nextPoint.row.toFloat() * scale)
+    }
+    perimeterPath.closePath()
+
+    val perimeterArea = Area(perimeterPath)
+
+    val img = BufferedImage((width + 2) * scale, (height + 2) * scale, BufferedImage.TYPE_INT_RGB)
+    (img.graphics as Graphics2D).run {
+        translate(-(minCol * scale) + scale, -(minRow * scale) + scale)
+        color = Color.red
+        fill(perimeterArea)
+        color = Color(255, 255, 0, 127)
+        val column = -117
+        fillRect((column * scale), (minRow - 1) * scale, scale, (height + 2) * scale)
+    }
+    ImageIO.write(img, "PNG", File("day18_perimeter.png"))
 }
 
 private fun sweepLine(perimeter: Set<PerimeterPoint>): Long {
@@ -77,7 +119,7 @@ private fun sweepLine(perimeter: Set<PerimeterPoint>): Long {
             val bpRect = partialRectangles.getRectangleAtRow(bottom.row)
 
             // easy case, no open rectangle, we just create a new one
-            if (tpRect == null && bpRect == null) {
+            if (tpRect == null && bpRect == null && lastClosedBottomRow != bottom.row) {
                 partialRectangles.add(PartialRectangle(top.row, bottom.row, col))
                 if (iterator.hasNext()) {
                     top = iterator.next()
@@ -248,11 +290,12 @@ private fun sweepLine(perimeter: Set<PerimeterPoint>): Long {
                 openRectangle = true
             } else {
                 val peek = iterator.next()
-                iterator.previous() // turn it back
                 if (peek.row != lastClosedBottomRow) {
+                    iterator.previous() // turn it back
                     // this happens, if there are more perimeter points below that are out of our current scope
                     openRectangle = true
                 }
+                // if they are equal, we ignore it
             }
             if (openRectangle) {
                 // this is option C
