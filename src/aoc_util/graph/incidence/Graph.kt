@@ -75,6 +75,8 @@ class Graph<V, E> {
          * Returns the [Graph] instance this vertex belongs to.
          */
         fun graph(): Graph<V, E> = this@Graph
+
+        override fun toString(): String = "$id: $value"
     }
 
     /**
@@ -105,6 +107,8 @@ class Graph<V, E> {
          * Returns the [Graph] instance this edge belongs to.
          */
         fun graph(): Graph<V, E> = this@Graph
+
+        override fun toString(): String = "($alpha) -> ($omega) $value"
     }
 
     /**
