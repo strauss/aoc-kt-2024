@@ -1,26 +1,185 @@
 package aoc_2023
 
+import aoc_util.graph.incidence.AnalyseEdgesVisitor
+import aoc_util.graph.incidence.DepthFirstSearch
+import aoc_util.graph.incidence.DfsVisitor
 import aoc_util.graph.incidence.Graph
 import aoc_util.readInput2023
 import aoc_util.solve
+import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 
 fun main() {
     val testLines = readInput2023("Day19_test")
     val testInput = parseInput(testLines)
     solve("Test result", testInput, ::simulateWorkflows)
     solve("Test result", testInput, ::simulateWithGraph)
+    solve("Test 2 result", testInput.first, ::rangePermutations)
 
     val lines = readInput2023("Day19")
     val input = parseInput(lines)
     solve("Result", input, ::simulateWorkflows)
     solve("Result", input, ::simulateWithGraph)
+    solve("Result 2", input.first, ::rangePermutations)
 
+}
+
+private fun rangePermutations(workflows: List<Workflow>): Long {
+    val graph = createGraph(workflows)
+    val startVertex = graph.vertexSequence().first { it.value.id == "in" }
+    val visitor = RangeDfsVisitor()
+    val dfs = DepthFirstSearch(graph, visitor)
+    dfs.execute(startVertex)
+    val result = visitor.acceptedRanges
+    val sumOfPermutations = result.sumOf { it.permutations() }
+
+    val intersections = ArrayList<XmasRanges>()
+    for (idx in result.indices) {
+        val currentPartialResult: XmasRanges = result[idx]
+        for (otherIdx in idx + 1..result.lastIndex) {
+            val otherPartialResult: XmasRanges = result[otherIdx]
+            val intersection = currentPartialResult.intersect(otherPartialResult)
+            if (intersection.permutations() != 0L) {
+                intersections.add(intersection)
+            }
+        }
+    }
+    val sumOfIntersections = intersections.sumOf { it.permutations() }
+    val out = sumOfPermutations - sumOfIntersections
+    return out
+}
+
+private class RangeDfsVisitor : DfsVisitor<WorkflowState, Rule>() {
+    private val initialRanges = XmasRanges(1..4000, 1..4000, 1..4000, 1..4000)
+    private val rangesAtVertex: MutableMap<Int, XmasRanges> =
+        HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<XmasRanges>().create()
+    val acceptedRanges: MutableList<XmasRanges> = ArrayList()
+
+    override fun visitRoot(root: Graph<WorkflowState, Rule>.Vertex) {
+        rangesAtVertex[root.id] = initialRanges
+    }
+
+    override fun visitEdge(edge: Graph<WorkflowState, Rule>.Edge) {
+        val alpha = edge.alpha
+        val alphaRanges = rangesAtVertex[alpha.id]!!
+        val rule = edge.value
+        val operation = rule.operation
+        val omegaRanges = alphaRanges.getReducedRangesByOperation(operation)
+        val omega = edge.omega
+        when (omega.value.id) {
+            "A" -> acceptedRanges.add(omegaRanges)
+            "R" -> { /* thore are ignored */
+            }
+
+            else -> rangesAtVertex[omega.id] = omegaRanges // regular case
+        }
+    }
+}
+
+private data class XmasRanges(val xr: IntRange, val mr: IntRange, val ar: IntRange, val sr: IntRange) {
+
+    companion object {
+        private val emptyRange = 1..0
+
+        fun IntRange.reduce(op: Operator, number: Int): IntRange {
+            val lower = this.start
+            val upper = this.endInclusive
+
+            val newLower: Int
+            val newUpper: Int
+
+            when (op) {
+                Operator.LT -> {
+                    newLower = lower
+                    newUpper = upper.coerceAtMost(number - 1)
+                }
+
+                Operator.LET -> {
+                    newLower = lower
+                    newUpper = upper.coerceAtMost(number)
+                }
+
+                Operator.GT -> {
+                    newLower = lower.coerceAtLeast(number + 1)
+                    newUpper = upper
+                }
+
+                Operator.GET -> {
+                    newLower = lower.coerceAtLeast(number)
+                    newUpper = upper
+                }
+
+                Operator.NOP -> {
+                    newLower = lower
+                    newUpper = upper
+                }
+            }
+
+            if (newUpper < newLower) {
+                return emptyRange
+            }
+
+            return newLower..newUpper
+        }
+
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val range = 50..100
+            val orange = 99..200
+            val rrange = orange.intersect(range)
+            println(rrange)
+        }
+
+        fun IntRange.intersect(other: IntRange): IntRange {
+            if (this.size() == 0 || other.size() == 0) {
+                return emptyRange
+            }
+            val smaller = if (this.start < other.start) this else other
+            val bigger = if (this == smaller) other else this
+            if (smaller.endInclusive < bigger.start) {
+                return emptyRange
+            }
+
+            val start = bigger.start
+            val endInclusive = if (bigger.endInclusive in smaller) bigger.endInclusive else smaller.endInclusive
+
+            return start..endInclusive
+        }
+
+        fun IntRange.size(): Int = 0.coerceAtLeast(endInclusive - start + 1)
+    }
+
+    fun getReducedRangesByOperation(operation: ComparisonOperation): XmasRanges {
+        val variable: Char = operation.variable
+        val relevantRange: IntRange = when (variable) {
+            'x' -> xr
+            'm' -> mr
+            'a' -> ar
+            's' -> sr
+            else -> throw IllegalStateException()
+        }
+
+        val reducedRange = relevantRange.reduce(operation.op, operation.number)
+
+        val nxr = if (xr === relevantRange) reducedRange else xr
+        val nmr = if (mr === relevantRange) reducedRange else mr
+        val nar = if (ar === relevantRange) reducedRange else ar
+        val nsr = if (sr === relevantRange) reducedRange else sr
+
+        return XmasRanges(nxr, nmr, nar, nsr)
+    }
+
+    fun permutations(): Long = xr.size().toLong() * mr.size().toLong() * ar.size().toLong() * sr.size().toLong()
+
+    fun intersect(other: XmasRanges): XmasRanges = XmasRanges(
+        xr.intersect(other.xr),
+        mr.intersect(other.mr),
+        ar.intersect(other.ar),
+        sr.intersect(other.sr)
+    )
 }
 
 /*
  * - Create graph
- *     - Vertex: Pair<String, Int> (workflow name to index in rule list
- *     - Edge: The rule (hopefully that works)
  * - DFS in this graph
  *     - SearchState:
  *         - Allowed Range for all four numbers
@@ -29,10 +188,18 @@ fun main() {
  * - Somehow™ handle overlapping ranges (try subtracting all overlaps once)
  */
 
+private fun analyseGraph(graph: Graph<WorkflowState, Rule>, root: Graph<WorkflowState, Rule>.Vertex) {
+    val visitor = AnalyseEdgesVisitor<WorkflowState, Rule>()
+    val dfs = DepthFirstSearch(graph, visitor)
+    dfs.execute(root)
+    println(visitor)
+}
+
 private fun simulateWithGraph(input: Pair<List<Workflow>, List<XmasPart>>): Long {
     val (workflows, parts) = input
     val graph = createGraph(workflows)
     val startVertex = graph.vertexSequence().first { it.value.id == "in" }
+    analyseGraph(graph, startVertex)
     var result = 0L
     for (part in parts) {
         var currentVertex = startVertex
