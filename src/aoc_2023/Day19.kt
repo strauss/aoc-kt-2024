@@ -1,9 +1,6 @@
 package aoc_2023
 
-import aoc_util.graph.incidence.AnalyseEdgesVisitor
-import aoc_util.graph.incidence.DepthFirstSearch
-import aoc_util.graph.incidence.DfsVisitor
-import aoc_util.graph.incidence.Graph
+import aoc_util.graph.incidence.*
 import aoc_util.readInput2023
 import aoc_util.solve
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
@@ -13,25 +10,52 @@ fun main() {
     val testInput = parseInput(testLines)
     solve("Test result", testInput, ::simulateWorkflows)
     solve("Test result", testInput, ::simulateWithGraph)
-    solve("Test 2 result", testInput.first, ::rangePermutations)
+    solve("Test 2 result", testInput.first, ::simulateWorkflows)
 
     val lines = readInput2023("Day19")
     val input = parseInput(lines)
     solve("Result", input, ::simulateWorkflows)
     solve("Result", input, ::simulateWithGraph)
-    solve("Result 2", input.first, ::rangePermutations)
+    solve("Result 2", input.first, ::simulateWorkflows)
 
 }
 
 private fun rangePermutations(workflows: List<Workflow>): Long {
     val graph = createGraph(workflows)
     val startVertex = graph.vertexSequence().first { it.value.id == "in" }
-    val visitor = RangeDfsVisitor()
-    val dfs = DepthFirstSearch(graph, visitor)
-    dfs.execute(startVertex)
-    val result = visitor.acceptedRanges
-    val sumOfPermutations = result.sumOf { it.permutations() }
+    val visitor = RangeVisitor()
+    val bfs = BreadthFirstSearch(graph, visitor)
+    bfs.execute(startVertex)
+    val accepted = visitor.acceptedRanges
+    val rejected = visitor.rejectedRanges
 
+    val sumOfAcceptedPermutations = accepted.sumOf { it.permutations() }
+    val acceptIntersections = calculateIntersections(accepted)
+    val sumOfAcceptIntersections = acceptIntersections.sumOf { it.permutations() }
+
+    val sumOfRejectedPermutations = rejected.sumOf { it.permutations() }
+    val rejectedIntersections = calculateIntersections(rejected)
+    val sumOfRejectedIntersections = rejectedIntersections.sumOf { it.permutations() }
+
+    val result = sumOfAcceptedPermutations - sumOfAcceptIntersections
+    val rejectedWouldBeResult = sumOfRejectedPermutations - sumOfRejectedIntersections
+
+    println("Sum of accepted: $sumOfAcceptedPermutations")
+    println("Sum of rejected: $sumOfRejectedPermutations")
+    println("Total: ${sumOfAcceptedPermutations + sumOfRejectedPermutations} ")
+
+    println("Result for accepted: $result")
+    println("Result for rejected: $rejectedWouldBeResult")
+    println("Total: ${result + rejectedWouldBeResult}")
+
+    val maximum = XmasRanges.initialRanges.permutations()
+    println("Reference maximum: $maximum")
+
+
+    return result
+}
+
+private fun calculateIntersections(result: MutableList<XmasRanges>): ArrayList<XmasRanges> {
     val intersections = ArrayList<XmasRanges>()
     for (idx in result.indices) {
         val currentPartialResult: XmasRanges = result[idx]
@@ -43,19 +67,17 @@ private fun rangePermutations(workflows: List<Workflow>): Long {
             }
         }
     }
-    val sumOfIntersections = intersections.sumOf { it.permutations() }
-    val out = sumOfPermutations - sumOfIntersections
-    return out
+    return intersections
 }
 
-private class RangeDfsVisitor : DfsVisitor<WorkflowState, Rule>() {
-    private val initialRanges = XmasRanges(1..4000, 1..4000, 1..4000, 1..4000)
+private class RangeVisitor : SearchVisitor<WorkflowState, Rule>() {
     private val rangesAtVertex: MutableMap<Int, XmasRanges> =
         HashTableBasedMapBuilder.useIntKey().useArbitraryTypeValue<XmasRanges>().create()
     val acceptedRanges: MutableList<XmasRanges> = ArrayList()
+    val rejectedRanges: MutableList<XmasRanges> = ArrayList()
 
     override fun visitRoot(root: Graph<WorkflowState, Rule>.Vertex) {
-        rangesAtVertex[root.id] = initialRanges
+        rangesAtVertex[root.id] = XmasRanges.initialRanges
     }
 
     override fun visitEdge(edge: Graph<WorkflowState, Rule>.Edge) {
@@ -64,13 +86,16 @@ private class RangeDfsVisitor : DfsVisitor<WorkflowState, Rule>() {
         val rule = edge.value
         val operation = rule.operation
         val omegaRanges = alphaRanges.getReducedRangesByOperation(operation)
+//        println("$alpha -> $omegaRanges ($rule)")
         val omega = edge.omega
         when (omega.value.id) {
             "A" -> acceptedRanges.add(omegaRanges)
-            "R" -> { /* thore are ignored */
-            }
+            "R" -> rejectedRanges.add(omegaRanges)
 
-            else -> rangesAtVertex[omega.id] = omegaRanges // regular case
+            else -> {
+                assert(rangesAtVertex[omega.id] == null)
+                rangesAtVertex[omega.id] = omegaRanges // regular case
+            }
         }
     }
 }
@@ -79,6 +104,8 @@ private data class XmasRanges(val xr: IntRange, val mr: IntRange, val ar: IntRan
 
     companion object {
         private val emptyRange = 1..0
+
+        val initialRanges = XmasRanges(1..4000, 1..4000, 1..4000, 1..4000)
 
         fun IntRange.reduce(op: Operator, number: Int): IntRange {
             val lower = this.start
@@ -121,12 +148,25 @@ private data class XmasRanges(val xr: IntRange, val mr: IntRange, val ar: IntRan
             return newLower..newUpper
         }
 
+        /**
+         * Splits at [border]. The right side includes [border] at its lower bound. If [border] is out of bounds,
+         * one of the resulting ranges will be empty and the other one a copy of [this].
+         */
+        fun IntRange.split(border: Int, borderLeft: Boolean = false): Pair<IntRange, IntRange> {
+            if ((borderLeft && border < start) || (!borderLeft && border <= start)) {
+                return emptyRange to start..endInclusive
+            }
+            if ((borderLeft && border >= endInclusive) || (!borderLeft && border > endInclusive)) {
+                // if border is exactly the upper bound, the right side will contain exactly one number
+                return start..endInclusive to emptyRange
+            }
+            return if (borderLeft) start..border to (border + 1)..endInclusive else start..<border to border..endInclusive
+        }
+
         @JvmStatic
         fun main(args: Array<String>) {
-            val range = 50..100
-            val orange = 99..200
-            val rrange = orange.intersect(range)
-            println(rrange)
+            val range = 100..300
+            println(range.split(100, true))
         }
 
         fun IntRange.intersect(other: IntRange): IntRange {
@@ -146,6 +186,39 @@ private data class XmasRanges(val xr: IntRange, val mr: IntRange, val ar: IntRan
         }
 
         fun IntRange.size(): Int = 0.coerceAtLeast(endInclusive - start + 1)
+    }
+
+    fun getSplitRanges(variable: Char, border: Int, borderLeft: Boolean): Pair<XmasRanges, XmasRanges> {
+        val relevantRange: IntRange = when (variable) {
+            'x' -> xr
+            'm' -> mr
+            'a' -> ar
+            's' -> sr
+            else -> throw IllegalStateException()
+        }
+
+        val (left, right) = relevantRange.split(border, borderLeft)
+
+
+        val nxr = if (xr === relevantRange) left to right else xr to xr
+        val nmr = if (mr === relevantRange) left to right else mr to mr
+        val nar = if (ar === relevantRange) left to right else ar to ar
+        val nsr = if (sr === relevantRange) left to right else sr to sr
+
+        return Pair(
+            XmasRanges(
+                nxr.first,
+                nmr.first,
+                nar.first,
+                nsr.first
+            ),
+            XmasRanges(
+                nxr.second,
+                nmr.second,
+                nar.second,
+                nsr.second
+            )
+        )
     }
 
     fun getReducedRangesByOperation(operation: ComparisonOperation): XmasRanges {
@@ -360,6 +433,73 @@ private fun simulateWorkflows(input: Pair<List<Workflow>, List<XmasPart>>): Long
     return result
 }
 
+private fun simulateWorkflows(workflows: List<Workflow>): Long {
+    val workflowMap = createWorkflowMap(workflows)
+    val accepted = ArrayList<XmasRanges>()
+    val rejected = ArrayList<XmasRanges>()
+    val workQueue = ArrayDeque<SimulationState>()
+    val startState = SimulationState("in", XmasRanges.initialRanges)
+    workQueue.addLast(startState)
+
+    while (workQueue.isNotEmpty()) {
+        val currentState = workQueue.removeFirst()
+        val currentWorkflow = workflowMap[currentState.nextWorkflowId] ?: throw IllegalStateException()
+        var currentRanges = currentState.ranges
+        for (rule in currentWorkflow.rules) {
+            val (result: Result, operation: ComparisonOperation) = rule
+            val (variable: Char, op: Operator, number: Int) = operation
+            val (resultType: ResultType, target: String?) = result
+            if (op == Operator.NOP) { // last rule, just take the leftover currentRanges
+                when (resultType) {
+                    ResultType.ACCEPT -> accepted.add(currentRanges)
+                    ResultType.REJECT -> rejected.add(currentRanges)
+                    ResultType.REDIRECT -> workQueue.addLast(SimulationState(target!!, currentRanges))
+                    ResultType.CONTINUE -> throw IllegalStateException()
+                }
+                continue
+            }
+
+            // normal case: take the positive result as it is (potentially creating a new SimulationState)
+            // the negative result will be the leftover for the next rule in the workflow
+            val borderLeft: Boolean = when (op) {
+                Operator.GT, Operator.LET -> true
+                Operator.LT, Operator.GET -> false
+                Operator.NOP -> throw IllegalStateException()
+            }
+            val (nextLeftRangesRanges, nextRightRanges) = currentRanges.getSplitRanges(variable, number, borderLeft)
+            val positiveResultRanges: XmasRanges
+            val negativeResultRanges: XmasRanges
+            if (op == Operator.LT || op == Operator.LET) {
+                positiveResultRanges = nextLeftRangesRanges
+                negativeResultRanges = nextRightRanges
+            } else { // GT || GET
+                positiveResultRanges = nextRightRanges
+                negativeResultRanges = nextLeftRangesRanges
+            }
+            when (resultType) {
+                ResultType.ACCEPT -> accepted.add(positiveResultRanges)
+                ResultType.REJECT -> rejected.add(positiveResultRanges)
+                ResultType.REDIRECT -> workQueue.addLast(SimulationState(target!!, positiveResultRanges))
+                ResultType.CONTINUE -> throw IllegalStateException()
+            }
+            currentRanges = negativeResultRanges
+        }
+    }
+
+    val rejectedResult: Long = rejected.sumOf { it.permutations() }
+    val acceptedResult: Long = accepted.sumOf { it.permutations() }
+    val totalPermutations: Long = XmasRanges.initialRanges.permutations()
+
+    println("Rejected: $rejectedResult")
+    println("Accepted: $acceptedResult")
+    println("Sum of  : ${acceptedResult + rejectedResult}")
+    println("Perms   : $totalPermutations")
+
+    return acceptedResult
+}
+
+private data class SimulationState(val nextWorkflowId: String, val ranges: XmasRanges)
+
 private fun createWorkflowMap(workflows: List<Workflow>): Map<String, Workflow> {
     val workflowMap = buildMap {
         for (workflow in workflows) {
@@ -367,6 +507,43 @@ private fun createWorkflowMap(workflows: List<Workflow>): Map<String, Workflow> 
         }
     }
     return workflowMap
+}
+
+private fun simplifyWorkflows(workflows: List<Workflow>): List<Workflow> {
+    val replacementMap: MutableMap<String, Result> = HashMap()
+    for (workflow in workflows) {
+        val rules = workflow.rules
+        val lastRule = rules[rules.lastIndex]
+        val beforeLastRule = rules[rules.lastIndex - 1]
+        if (lastRule.onMatch == beforeLastRule.onMatch) {
+            rules.removeAt(rules.lastIndex - 1)
+        }
+        if (rules.size == 1) {
+            replacementMap[workflow.name] = lastRule.onMatch
+        }
+    }
+    val newWorkflows: MutableList<Workflow> = ArrayList()
+    for (workflow in workflows) {
+        if (workflow.name in replacementMap.keys) {
+            continue
+        }
+        val newRules: MutableList<Rule> = ArrayList()
+        for (rule in workflow.rules) {
+            if (rule.onMatch.type == ResultType.REDIRECT) {
+                val oldTarget = rule.onMatch.to!!
+                val replacementMatch: Result = replacementMap[oldTarget] ?: rule.onMatch
+                val newRule = rule.copy(onMatch = replacementMatch)
+                newRules.add(newRule)
+            } else {
+                newRules.add(rule)
+            }
+        }
+        workflow.rules.clear()
+        workflow.rules.addAll(newRules)
+        newWorkflows.add(workflow)
+    }
+
+    return newWorkflows
 }
 
 private fun parseInput(lines: List<String>): Pair<List<Workflow>, List<XmasPart>> {
@@ -440,6 +617,18 @@ private fun parseInput(lines: List<String>): Pair<List<Workflow>, List<XmasPart>
             parts.add(part)
         }
     }
+
+//    var actualWorkflows: List<Workflow> = workflows
+
+//    var round = 0
+//    while (true) {
+//        round += 1
+//    val simplifiedWorkflows = simplifyWorkflows(actualWorkflows)
+//        if (simplifiedWorkflows == actualWorkflows) {
+//            break
+//        }
+//    actualWorkflows = simplifiedWorkflows
+//    }
 
     return workflows to parts
 }

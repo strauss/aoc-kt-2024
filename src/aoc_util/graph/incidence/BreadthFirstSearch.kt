@@ -6,7 +6,7 @@ class BreadthFirstSearch<V, E>(val graph: Graph<V, E>, val visitor: SearchVisito
     private val entered = PrimitiveIntSetB()
     private val vertexBuffer = ArrayDeque<Graph<V, E>.Vertex>()
 
-    fun search(root: Graph<V, E>.Vertex? = null) {
+    fun execute(root: Graph<V, E>.Vertex? = null) {
         val complete = root == null
         val vertexIterator = graph.vertexSequence().iterator()
         if (!vertexIterator.hasNext()) {
