@@ -242,6 +242,19 @@ private class DebugModule(label: String, val otherModules: Map<String, Module>) 
          * Weird numbers: 4079, 3863, 3929, 3769
          *
          * Just randomly multiply them together and hope it is the correct answer (which it actually was ... but why?)
+         *
+         * Explanation from Reddit:
+         *
+         * About one of your "stunned" tidbit: Note that there is one output connection from the counter conjunction
+         * module to the lowest bit (1 bit) of the 12-bit counter. For all other 11 bits, there is either an output to
+         * the conjunction module (meaning 1 is expected in those bits when the conjunction module fires), or the
+         * conjunction module has an output to that bit (meaning 0 is expected in those bits), but not both; the lowest
+         * bit have both. Using your 4079 as example, this would be that the among the 12 bits in the counter, all
+         * except the 16 bit have output to the conjunction module, and the conjunction module has output to the 16 bit
+         * and the 1 bit. When the counter hits 4079, the conjunction module fires, its two outputs to 16 bit and 1 bit
+         * effectively adds 17 to the counter, and the counter overflows to 0 because 4079+17=4096=212 . This is why
+         * you see they are all 0 bit after signal settled: the signal for reaching the value is fired and in addition
+         * to supplying the "master" conjunction module a signal, it also resets its counter.
          */
 
         @JvmStatic

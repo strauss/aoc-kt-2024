@@ -330,6 +330,8 @@ data class Coordinate(val row: Int, val col: Int) {
         }
         return Coordinate(row + deltaRow, col + deltaCol)
     }
+
+    override fun toString(): String = "($row, $col)"
 }
 
 enum class Movement(val deltaRow: Int, val deltaCol: Int) {
