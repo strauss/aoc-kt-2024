@@ -8,13 +8,13 @@ fun main() {
     val testLines = readInput2023("Day21_test")
     val testInput = parseInput(testLines)
     solve("Test result", testInput, ::countCoordinates)
-    solve("Test 2 result", testInput) {
-        solveTorus(testInput, 10)
-    }
+//    solve("Test 2 result", testInput) {
+//        solveTorus(testInput, 5000)
+//    }
 
     val lines = readInput2023("Day21")
     val input = parseInput(lines)
-    solve("Result", input, ::countCoordinates)
+    solve("Result", input) { countCoordinates(it, 20002) }
 }
 
 private fun solveTorus(input: InputData, steps: Int): Long {
@@ -26,18 +26,11 @@ private fun solveTorus(input: InputData, steps: Int): Long {
 
 private class TorusSolver(private val grid: Set<Coordinate>, private val height: Int, private val width: Int) {
 
-//    private val resultCache: MutableMap<Pair<Coordinate, Int>, Long> = HashMap()
-
-    private val alreadyCounted: MutableSet<Pair<Coordinate, Int>> = HashSet()
-
     fun countTorusCoordinates(start: Coordinate, steps: Int): Long {
-//        val cachedResult = resultCache[start to steps]
-//        if (cachedResult != null) {
-//            return cachedResult
-//        }
         val workList = ArrayList<Coordinate>()
         var result = 0L
         workList.add(start)
+        val followUpSet: MutableSet<Pair<Coordinate, Int>> = LinkedHashSet()
         for (i in 1..steps) {
             val tmpSet = HashSet<Coordinate>()
             fun handleNeighbor(neighbor: Coordinate) {
@@ -50,29 +43,32 @@ private class TorusSolver(private val grid: Set<Coordinate>, private val height:
                     val tRow = if (nRow > 0) nRow % height else height - nRow
                     val tCol = if (nCol > 0) nCol % width else width - nCol
                     val torusCoordinate = Coordinate(tRow, tCol)
-                    val newSteps = steps - i
-                    if (torusCoordinate in grid && (torusCoordinate to newSteps) !in alreadyCounted) {
-                        val subResult = countTorusCoordinates(torusCoordinate, newSteps)
-                        result += subResult
+                    if (torusCoordinate in grid) {
+                        val newSteps = steps - i
+                        followUpSet.add(torusCoordinate to newSteps)
                     }
                 }
             }
             for (coordinate in workList) {
-                val north = coordinate.getNorth()
-                handleNeighbor(north)
-                val east = coordinate.getEast()
-                handleNeighbor(east)
-                val south = coordinate.getSouth()
-                handleNeighbor(south)
-                val west = coordinate.getWest()
-                handleNeighbor(west)
+                handleNeighbor(coordinate.getNorth())
+                handleNeighbor(coordinate.getEast())
+                handleNeighbor(coordinate.getSouth())
+                handleNeighbor(coordinate.getWest())
             }
             workList.clear()
             workList.addAll(tmpSet)
         }
         result += workList.size.toLong()
-//        resultCache[start to steps] = result
-        alreadyCounted.add(start to steps)
+
+        // TODO: handle follow-up set
+        /*
+         * Further ideas:
+         * - introduce "higher level coordinates" for the map repetitions. The start map is at (0,0)
+         * - store the reachable positions in a BitSet (2D -> 1D with local coordinates)
+         * - for each hl-coordinate store the BitSet "so far"
+         * - as soon as the whole local map is part of the solution, don't search in that part anymore (BitSet for comparison should be calculated beforehand)
+         */
+
         return result
     }
 }
