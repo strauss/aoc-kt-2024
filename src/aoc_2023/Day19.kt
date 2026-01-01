@@ -2,6 +2,7 @@ package aoc_2023
 
 import aoc_util.graph.incidence.*
 import aoc_util.readInput2023
+import aoc_util.size
 import aoc_util.solve
 import de.dreamcube.hornet_queen.map.HashTableBasedMapBuilder
 
@@ -184,8 +185,6 @@ private data class XmasRanges(val xr: IntRange, val mr: IntRange, val ar: IntRan
 
             return start..endInclusive
         }
-
-        fun IntRange.size(): Int = 0.coerceAtLeast(endInclusive - start + 1)
     }
 
     fun getSplitRanges(variable: Char, border: Int, borderLeft: Boolean): Pair<XmasRanges, XmasRanges> {

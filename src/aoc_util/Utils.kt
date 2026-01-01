@@ -464,3 +464,5 @@ fun <T> List<T>.allSeparations(size: Int): List<List<List<T>>> {
         }
     }
 }
+
+fun IntRange.size(): Int = (-1).coerceAtLeast(endInclusive - start + 1)
