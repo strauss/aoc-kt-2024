@@ -13,6 +13,7 @@ fun main() {
     val lines = readInput2023("Day22")
     val input = parseInput(lines)
     solve("Result", input, ::countSaveRemovals)
+    solve("Result 2", input, ::countChainReactions)
 }
 
 private fun countSaveRemovals(bricks: List<Brick>): Int {
@@ -29,17 +30,23 @@ private fun countSaveRemovals(bricks: List<Brick>): Int {
 private fun countChainReactions(bricks: List<Brick>): Int {
     val space = createBrickSpace(bricks)
     var result = 0
-    for (brick in bricks) {
-        result += space.getChainReaction(brick).size
+    for (brick in space.bricks) {
+        if (!space.canBeDisintegrated(brick)) {
+            // we simulate filling a new space from bottom to top without the current brick for counting the ones that would fall
+            val tmpSpace = createBrickSpace(space.bricks.toList()) { it == brick }
+            result += tmpSpace.fallen
+        }
     }
     return result
 }
 
-private fun createBrickSpace(bricks: List<Brick>): BrickSpace {
+private fun createBrickSpace(bricks: List<Brick>, except: (Brick) -> Boolean = { false }): BrickSpace {
     val sortedBricks: List<Brick> = bricks.sortedBy { brick -> brick.zRange.start }
     val space = BrickSpace(0)
     for (brick in sortedBricks) {
-        space.dropBrick(brick)
+        if (!except(brick)) {
+            space.dropBrick(brick)
+        }
     }
     return space
 }
@@ -51,8 +58,10 @@ private class BrickSpace(private val groundLevel: Int = 0) {
     private val supportedBy: MutableMap<Brick, MutableSet<Brick>> = HashMap()
     val bricks: MutableSet<Brick> = HashSet()
     private val occupiedCoordinates: MutableMap<Coordinate3D, Brick> = HashMap()
-    private val chainReactionCache: MutableMap<Brick, Set<Brick>> = HashMap()
+    var fallen: Int = 0
 
+    /* This does not work
+    private val chainReactionCache: MutableMap<Brick, Set<Brick>> = HashMap()
     fun getChainReaction(brick: Brick): Set<Brick> {
         val allSupported: Set<Brick>? = supports[brick]
         if (allSupported.isNullOrEmpty() || canBeDisintegrated(brick)) {
@@ -68,6 +77,7 @@ private class BrickSpace(private val groundLevel: Int = 0) {
         }
         return result
     }
+     */
 
     /**
      * Checks, if the given brick is supporting others. If so, it also checks, if those bricks are supported by other
@@ -137,6 +147,9 @@ private class BrickSpace(private val groundLevel: Int = 0) {
             supportedBySet.add(it)
         }
         highestOccupiedLevel = highestOccupiedLevel.coerceAtLeast(droppedBrick.zRange.endInclusive)
+        if (brick != droppedBrick) {
+            fallen += 1
+        }
     }
 }
 
