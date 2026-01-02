@@ -30,9 +30,9 @@ fun main() {
     solve("Result", graph) {
         searchLongestPath(it, input.start, input.goal)
     }
-//    solve("Result", noSlopesGraph) {
-//        searchLongestPath(it, input.start, input.goal)
-//    }
+    solve("Result", noSlopesGraph) {
+        searchLongestPathWithClustering(it, input.start, input.goal)
+    }
 
 }
 
@@ -45,7 +45,7 @@ private fun searchLongestPathWithClustering(
     clustering.calculateClusterGraph(start)
     val startCluster = clustering.getClusterByCoordinate(start)
     val goalCluster = clustering.getClusterByCoordinate(goal)
-    return clusterSearch(clustering.clusterGraph, startCluster!!, goalCluster!!)
+    return clusterSearch(clustering.clusterGraph, startCluster!!, goalCluster!!) - 1 // the start vertex does not count
 }
 
 private fun clusterSearch(
@@ -71,8 +71,7 @@ private fun clusterSearch(
                     clusterGraph,
                     omega,
                     goalCluster,
-                    // +1 for the junction node that is not part of any cluster
-                    lengthSoFar + startCluster.cardinality() + 1,
+                    lengthSoFar + startCluster.cardinality(),
                     newVisitedOnPath
                 )
                 if (res >= 0) {
@@ -111,56 +110,65 @@ private class Clustering(val graph: BitSetAdjacencyBasedGraph<Coordinate>) {
     // TODO: junctions have to be their own cluster
     fun calculateClusterGraph(start: Coordinate) {
         // calculate first cluster and initialize the higher order search
-        val (startCluster, firstJunction) = detectCluster(start)
+        val (startCluster, firstJunctionCluster) = detectCluster(start)
         clusterGraph.introduceVertex(startCluster)
 
         // Stores the source cluster and the next junction to process
         val workBuffer = ArrayDeque<Pair<BitSet, Int>>()
 
-        fun processJunction(sourceCluster: BitSet, junction: Coordinate) {
+        fun processJunction(sourceCluster: BitSet, junction: BitSet) {
+            val junctionId = junction.nextSetBit(0)
             graph.run {
-                val aIterator = junction.adjacencies()
+                val junctionVertex = get(junctionId)!!
+                val aIterator = junctionVertex.adjacencies()
                 while (aIterator.hasNext()) {
                     val next = aIterator.next()
                     if (!processedVertices[next.getId()]) {
-                        workBuffer.addLast(sourceCluster to next.getId())
+                        workBuffer.addLast(junction to next.getId())
                     }
                 }
-                processedJunctions[junction.getId()] = true
-                processedVertices[junction.getId()] = true
+                processedJunctions[junctionVertex.getId()] = true
+                processedVertices[junctionVertex.getId()] = true
             }
         }
 
-        if (firstJunction != null) {
-            processJunction(startCluster, firstJunction)
+        if (firstJunctionCluster != null) {
+            processJunction(startCluster, firstJunctionCluster)
+            clusterGraph.run {
+                startCluster.connect(firstJunctionCluster)
+            }
         }
 
         // perform the search and build the cluster graph while doing so
         while (workBuffer.isNotEmpty()) {
-            val (sourceCluster: BitSet, nextStartId: Int) = workBuffer.removeFirst()
+            val (sourceJunctionCluster: BitSet, nextStartId: Int) = workBuffer.removeFirst()
             if (processedVertices[nextStartId]) {
                 val nextStartCoordinate: Coordinate? = graph[nextStartId]
                 val nextCluster: BitSet? = getClusterByCoordinate(nextStartCoordinate)
                 if (nextCluster != null) {
                     clusterGraph.run {
-                        sourceCluster.connect(nextCluster)
+                        sourceJunctionCluster.connect(nextCluster)
                     }
                 }
                 continue
             }
-            val (nextCluster, nextJunction) = detectCluster(graph[nextStartId]!!)
+            val (nextCluster, nextJunctionCluster) = detectCluster(graph[nextStartId]!!)
             clusterGraph.run {
-                sourceCluster.connect(nextCluster)
+                sourceJunctionCluster.connect(nextCluster)
             }
-            if (nextJunction != null) {
-                processJunction(nextCluster, nextJunction)
+            if (nextJunctionCluster != null) {
+                processJunction(nextCluster, nextJunctionCluster)
+                clusterGraph.run {
+//                    sourceCluster.connect(nextJunction)
+                    nextCluster.connect(nextJunctionCluster)
+                }
             }
         }
     }
 
-    private fun detectCluster(clusterStart: Coordinate): Pair<BitSet, Coordinate?> {
+    private fun detectCluster(clusterStart: Coordinate): Pair<BitSet, BitSet?> {
         val currentCluster = BitSet()
-        var nextJunction: Coordinate? = null
+        var nextJunction: BitSet? = null
         graph.run {
             var currentCoordinate = clusterStart
             while (true) {
@@ -183,7 +191,8 @@ private class Clustering(val graph: BitSetAdjacencyBasedGraph<Coordinate>) {
                     currentCluster[currentCoordinate.getId()] = true
                     currentCoordinate = relevantAdjacencies[0]
                 } else if (relevantAdjacencies.size > 1) {
-                    nextJunction = currentCoordinate
+                    nextJunction = BitSet()
+                    nextJunction[currentCoordinate.getId()] = true
                     detectedJunctions[currentCoordinate.getId()] = true
                     break
                 }
