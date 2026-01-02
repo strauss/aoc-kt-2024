@@ -106,8 +106,6 @@ private class Clustering(val graph: BitSetAdjacencyBasedGraph<Coordinate>) {
         return null
     }
 
-
-    // TODO: junctions have to be their own cluster
     fun calculateClusterGraph(start: Coordinate) {
         // calculate first cluster and initialize the higher order search
         val (startCluster, firstJunctionCluster) = detectCluster(start)
