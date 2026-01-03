@@ -363,6 +363,8 @@ fun <T> Pair<T, T>.getInverse() = this.second to this.first
 
 tailrec fun gcd(a: Long, b: Long): Long = if (b == 0L) a else gcd(b, a % b)
 
+tailrec fun gcd(a: BigInteger, b: BigInteger): BigInteger = if (b == BigInteger.ZERO) a else gcd(b, a.mod(b))
+
 fun lcm(a: Long, b: Long): Long {
     val gcd: Long = gcd(a, b)
     return (a * b).absoluteValue / gcd

@@ -25,6 +25,11 @@ data class Vector(val x: Double, val y: Double, val z: Double) {
 }
 
 data class DiscreteVector(val x: BigInteger, val y: BigInteger, val z: BigInteger) {
+
+    companion object {
+        val ZERO = DiscreteVector(BigInteger.ZERO, BigInteger.ZERO, BigInteger.ZERO)
+    }
+
     operator fun plus(v: DiscreteVector): DiscreteVector = DiscreteVector(x + v.x, y + v.y, z + v.y)
     operator fun minus(v: DiscreteVector): DiscreteVector = DiscreteVector(x - v.x, y - v.y, z - v.z)
     operator fun unaryMinus(): DiscreteVector = DiscreteVector(-x, -y, -z)
