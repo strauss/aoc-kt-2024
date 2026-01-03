@@ -4,27 +4,38 @@ import aoc_util.Vector
 import aoc_util.gcd
 import aoc_util.readInput2023
 import aoc_util.solve
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 private val EPSILON: Double = 10.0.pow(-16.0)
+private const val X_OFFSET = 8567975921442
+private const val Y_OFFSET = 9079190797619
+private const val Z_OFFSET = 11125812972389
 
 fun main() {
     val testLines = readInput2023("Day24_test")
-    val testInput = parseInput(testLines)
+    val testInput = parseInput(testLines, offset = false)
     solve("Test result", testInput) {
         val input2D = testInput.map { it.makeIt2D() }
         countIntersections2D(input2D, 7.0..27.0)
     }
-    solve("Test 2 result", testInput, ::evaluateStoneLine)
+    solve("Test 2 result", testInput) {
+        evaluateStoneLine(it, offset = false)
+    }
 
     val lines = readInput2023("Day24")
-    val input = parseInput(lines)
+    val input = parseInput(lines, offset = false)
     solve("Result", input) {
         val input2D = input.map { it.makeIt2D() }
         countIntersections2D(input2D, 200000000000000.0..400000000000000.0)
     }
+    val oInput = parseInput(lines, offset = true)
 
-    solve("Result", input, ::evaluateStoneLine)
+//    solve("Result", oInput, ::evaluateStoneLine)
+
+    val iRes = getBestCandidates(oInput)
 
 
 //
@@ -44,7 +55,7 @@ fun main() {
 
 }
 
-private fun evaluateStoneLine(input: List<Line3D>): Long {
+private fun evaluateStoneLine(input: List<Line3D>, offset: Boolean = true): Long {
     val result = findStoneLine(input)
     if (result != null) {
         val (stoneLine, intersections) = result
@@ -55,44 +66,85 @@ private fun evaluateStoneLine(input: List<Line3D>): Long {
                 firstIntersection = intersection
             }
         }
-        val start =
+        val xOffset = if (offset) X_OFFSET else 0
+        val yOffset = if (offset) Y_OFFSET else 0
+        val zOffset = if (offset) Z_OFFSET else 0
+        val result =
             (firstIntersection.line2.p + (firstIntersection.line2.v * (firstIntersection.param2!!))) - (actualV * firstIntersection.param2)
+        val start = result + Vector(xOffset.toDouble(), yOffset.toDouble(), zOffset.toDouble())
         println("Velocity: $actualV")
         println("Start   : $start")
+
         return (start.x + start.y + start.z).toLong()
     }
     return -1L
 }
 
+private fun getBestCandidates(input: List<Line3D>): Pair<Int, Int> {
+    var minDistance = Double.POSITIVE_INFINITY
+    var mindex1 = -1
+    var mindex2 = -1
+    var intersects = 0
+    var parallel = 0
+    for (idx1 in 0..input.lastIndex) {
+        val currentFirstLine = input[idx1]
+        for (idx2 in idx1 + 1..input.lastIndex) {
+            val currentSecondLine = input[idx2]
+            val currentResult = currentFirstLine.intersects(currentSecondLine)
+            if (currentResult.parallel) {
+                parallel += 1
+                continue
+            }
+            if (currentResult.intersects) {
+                intersects += 1
+                continue
+            }
+            val currentDistance = currentResult.distance
+            if (currentDistance < minDistance) {
+                minDistance = currentDistance
+                mindex1 = idx1
+                mindex2 = idx2
+            }
+        }
+    }
+    return mindex1 to mindex2
+}
 
 private fun findStoneLine(input: List<Line3D>): Pair<Line3D, List<IntersectionInformation>>? {
-    val probe1 = input[0]
-    val probe2 = input[1]
+//    val (idx1, idx2) = getBestCandidates(input)
+    val idx1 = 0
+    val idx2 = 1
+    val probe1 = input[idx1]
+    val probe2 = input[idx2]
+    val debug = probe1.intersects(probe2)
     val p1 = probe1.p
     val v1 = probe1.v
     val p2 = probe2.p
     val v2 = probe2.v
-    val max = input.size * 20 // this is arbitrary, we do not know the correct max
+    val max = input.size * 10 // this is arbitrary, we do not know the correct max
 
     var maxIntersections = Integer.MIN_VALUE
-    for (t1 in 1..max) {
+    for (t1 in 0..max) {
         val np = p1 + (v1 * t1.toDouble())
-        for (t2 in 2..max) {
+        for (t2 in 0..max) {
             if (t1 == t2) {
                 continue
             }
             val op = p2 + (v2 * t2.toDouble())
             val nv = (op - np).reduce()
             val currentLine = Line3D(np, nv)
-            var intersections = 2 // the two probe lines are always intersected
-            for (idx in 2..input.lastIndex) {
+            var validIntersections = 2 // the two probe lines are always intersected
+            for (idx in 0..input.lastIndex) {
+                if (idx == idx1 || idx == idx2) {
+                    continue
+                }
                 val result = currentLine.intersects(input[idx])
-                if (result.intersects) {
-                    intersections += 1
+                if (result.intersects && result.param1 != 0.0 && result.param2 != 0.0) {
+                    validIntersections += 1
                 }
             }
-            maxIntersections = maxIntersections.coerceAtLeast(intersections)
-            if (intersections == input.size) {
+            maxIntersections = maxIntersections.coerceAtLeast(validIntersections)
+            if (validIntersections == input.size) {
                 val resultList = ArrayList<IntersectionInformation>()
                 for (idx in input.indices) {
                     val result = currentLine.intersects(input[idx])
@@ -121,6 +173,7 @@ private fun Vector.reduce(): Vector {
 private data class IntersectionInformation(
 //    val line1: Line3D,
     val line2: Line3D,
+    val distance: Double,
     val intersects: Boolean = false,
     val parallel: Boolean = false,
     val param1: Double? = null,
@@ -160,20 +213,24 @@ private fun countIntersections2D(lines: List<Line2D>, range: ClosedFloatingPoint
     return result
 }
 
-private fun parseInput(lines: List<String>): List<Line3D> {
+private fun parseInput(lines: List<String>, offset: Boolean = true): List<Line3D> {
     val result = ArrayList<Line3D>(lines.size)
 
     val atSep = " @ ".toRegex()
     val commaSep = ", ".toRegex()
+
+    val xOffset = if (offset) X_OFFSET else 0
+    val yOffset = if (offset) Y_OFFSET else 0
+    val zOffset = if (offset) Z_OFFSET else 0
 
     for (line in lines) {
         val sep1 = atSep.split(line)
         val point = commaSep.split(sep1[0])
         val vector = commaSep.split(sep1[1])
         val p = Vector(
-            point[0].trim().toDouble(),
-            point[1].trim().toDouble(),
-            point[2].trim().toDouble(),
+            point[0].trim().toDouble() - xOffset,
+            point[1].trim().toDouble() - yOffset,
+            point[2].trim().toDouble() - zOffset,
         )
         val v = Vector(
             vector[0].trim().toDouble(),
@@ -184,7 +241,25 @@ private fun parseInput(lines: List<String>): List<Line3D> {
         result.add(line3D)
     }
 
+//    analyzeInput(result)
+
     return result
+}
+
+private fun analyzeInput(input: List<Line3D>) {
+    var minX = Double.POSITIVE_INFINITY
+    var minY = Double.POSITIVE_INFINITY
+    var minZ = Double.POSITIVE_INFINITY
+
+    for (line in input) {
+        minX = minX.coerceAtMost(line.p.x)
+        minY = minY.coerceAtMost(line.p.y)
+        minZ = minZ.coerceAtMost(line.p.z)
+    }
+
+    println("MinX: ${minX.toLong()}")
+    println("MinY: ${minY.toLong()}")
+    println("MinZ: ${minZ.toLong()}")
 }
 
 private data class Line2D(val x: Double, val y: Double, val vx: Double, val vy: Double)
@@ -205,21 +280,31 @@ private data class Line3D(val p: Vector, val v: Vector) {
 //        if (n == Vector.ZERO) {
         if (nSize <= EPSILON) {
             // does not intersect and is parallel
+            val rCrossV = r.cross(thisV)
+            val rCrossVSquared = rCrossV * rCrossV
+            val rCrossVSize = sqrt(rCrossVSquared)
+            val thisVSquared = v * v
+            val thisVSize = sqrt(thisVSquared)
+            val parallelDistance = rCrossVSize / thisVSize
             return IntersectionInformation(
 //                thisLine,
                 otherLine,
+                parallelDistance,
                 parallel = true
             )
         }
         val rSquared = r * r
         val rSize = sqrt(rSquared)
 //        if (r * n != 0.0) {
-        val comp = (r * n) / (rSize * nSize)
+        val rTimesN = r * n
+        val comp = rTimesN / (rSize * nSize)
         if (comp > EPSILON) {
             // does not intersect and is not parallel
+            val distance = rTimesN / nSize
             return IntersectionInformation(
 //                thisLine,
-                otherLine
+                otherLine,
+                distance
             )
         }
         // intersects
@@ -228,9 +313,10 @@ private data class Line3D(val p: Vector, val v: Vector) {
         return IntersectionInformation(
 //            thisLine,
             otherLine,
+            0.0, // the distance is normalized to 0.0 if they intersect
             intersects = true,
-            param1 = param1.roundToLong().toDouble(),
-            param2 = param2.roundToLong().toDouble()
+            param1 = param1, //.roundToLong().toDouble(),
+            param2 = param2 //.roundToLong().toDouble()
         )
     }
 }
