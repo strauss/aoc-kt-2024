@@ -30,9 +30,11 @@ fun main() {
     }
     val oInput = parseInput(lines, offset = true)
 
-//    solve("Result", oInput, ::evaluateStoneLine)
+    solve("Result", oInput) {
+        evaluateStoneLineFast(it, offset = true)
+    }
 
-    val iRes = getBestCandidates(oInput)
+//    val newStoneLine = findStoneLineFast(oInput)
 
 
 //
@@ -54,13 +56,37 @@ fun main() {
 
 private fun evaluateStoneLine(input: List<Line3D>, offset: Boolean = true): Long {
     val result = findStoneLine(input)
+    val (idx1, idx2) = getBestCandidates(input)
+    val probe1 = input[idx1]
+    val probe2 = input[idx2]
+    return internalEvaluateStoneLine(result, probe1, probe2, offset)
+}
+
+private fun evaluateStoneLineFast(input: List<Line3D>, offset: Boolean = true): Long {
+    val (idx1, idx2) = getBestCandidates(input)
+    val probe1 = input[idx1]
+    val probe2 = input[idx2]
+    val result = findStoneLineFast(input, probe1, probe2)
+    return internalEvaluateStoneLine(result, probe1, probe2, offset)
+}
+
+private fun internalEvaluateStoneLine(
+    result: Pair<Line3D, List<IntersectionInformation>>?,
+    probe1: Line3D,
+    probe2: Line3D,
+    offset: Boolean
+): Long {
     if (result != null) {
         val (stoneLine, intersections) = result
-        val actualV = if (intersections[0].param2!! < intersections[1].param2!!) stoneLine.v else -stoneLine.v
-        var firstIntersection = intersections[0]
+        val probe1Intersection = intersections.find { it.line2 == probe1 }!!
+        val probe2Intersection = intersections.find { it.line2 == probe2 }!!
+        val actualV = if (probe1Intersection.param2!! < probe2Intersection.param2!!) stoneLine.v else -stoneLine.v
+        var firstIntersection = probe1Intersection
         for (intersection in intersections) {
-            if (intersection.param2!! < firstIntersection.param2!!) {
-                firstIntersection = intersection
+            if (intersection.param2 != null) {
+                if (intersection.param2 < firstIntersection.param2!!) {
+                    firstIntersection = intersection
+                }
             }
         }
         val xOffset = if (offset) X_OFFSET else 0
@@ -108,6 +134,119 @@ private fun getBestCandidates(input: List<Line3D>): Pair<Int, Int> {
     return mindex1 to mindex2
 }
 
+private fun findStoneLineFast(
+    input: List<Line3D>,
+    probe1: Line3D,
+    probe2: Line3D
+): Pair<Line3D, List<IntersectionInformation>>? {
+    /*
+     * Idea:
+     * - Instead of counting the intersections measure the sum of "errors" (distances) of all intersections
+     * - Move both indexes forward until a "sweet spot" is hit
+     * - Move the indexes independently, one at a time
+     *    - Search greedy towards the lowest error in all four directions
+     *    - When the error hits 0, we are done and have found the "stone line"
+     */
+
+    val (p1, v) = probe1
+    val (p2, w) = probe2
+
+    fun getIntersections(line: Line3D): List<IntersectionInformation> = buildList {
+        for (idx in input.indices) {
+            add(line.intersects(input[idx]))
+        }
+    }
+
+    val (t1d, t2d, d1, d2) = determineStartParameters(probe1, probe2)
+
+    var t1 = 914447960840//t1d
+    var t2 = 914276650550//t2d
+    var delta1 = d1
+    var delta2 = d2
+
+    fun assembleCurrentLine(t1: Long, t2: Long): Line3D {
+        val np = p1 + (v * t1.toDouble())
+        val op = p2 + (w * t2.toDouble())
+        val nv = (op - np).reduce()
+        val currentLine = Line3D(np, nv)
+        return currentLine
+    }
+
+    // first we search for a good starting point
+    // we move forward with t1 and t2 simultaneously until we hit a local minimum
+//    var delta = 100_000_000L
+    fun calculateDistances(t1: Long, t2: Long): Double {
+        val currentLine = assembleCurrentLine(t1, t2)
+        val intersections = getIntersections(currentLine)
+        val nextSumOfDistances = intersections.sumOf { it.distance }
+        return nextSumOfDistances
+    }
+
+    var currentBestSumOfDistances = calculateDistances(t1, t2)
+
+    while (true) {
+//        val both = calculateDistances(t1 + delta1, t2 + delta2)
+        val onlyFirst = calculateDistances(t1 + delta1, t2)
+        val onlySecond = calculateDistances(t1, t2 + delta2)
+        val min = minOf(
+//            both,
+            onlyFirst, onlySecond
+        )
+
+        if (min < currentBestSumOfDistances) {
+            currentBestSumOfDistances = min
+            when (min) {
+//                both -> {
+//                    t1 += delta1
+//                    t2 += delta2
+//                }
+                onlyFirst -> t1 += delta1
+                onlySecond -> t2 += delta2
+            }
+        } else {
+            break
+        }
+    }
+
+    println(t1)
+    println(t2)
+
+    val stoneLine = assembleCurrentLine(t1, t2)
+    val intersections = getIntersections(stoneLine)
+
+    return stoneLine to intersections
+}
+
+private data class StartConfiguration(val p1: Long, val p2: Long, val d1: Long, val d2: Long)
+
+private fun determineStartParameters(probe1: Line3D, probe2: Line3D): StartConfiguration {
+    val (p1, v) = probe1
+    val (p2, w) = probe2
+    // determine closest points on both lines and use their vectors as initial parameters
+//    val intersectProbes = probe1.intersects(probe2)
+    val r = p1 - p2
+    val a = v * v
+    val b = v * w
+    val c = w * w
+    val d = v * r
+    val e = w * r
+    val det = a * c - b * b
+    val t1d = ((b * e - c * d) / det).roundToLong() - 39965742L // values determined by experimentation
+    val t2d = ((a * e - b * d) / det).roundToLong() + 8302794L
+
+
+//
+//    val np = p1 + (v * t1d.toDouble())
+//    val op = p2 + (w * t2d.toDouble())
+//    val nv = (op - np).reduce()
+//    val currentLine = Line3D(np, nv)
+//
+//    val intersections = getIntersections(currentLine)
+//    val nextSumOfDistances = intersections.sumOf { it.distance }
+//    val intersectionCount = intersections.count { it.intersects }
+    return StartConfiguration(t1d, t2d, -1L, 1L)
+}
+
 private fun findStoneLine(input: List<Line3D>): Pair<Line3D, List<IntersectionInformation>>? {
     val (idx1, idx2) = getBestCandidates(input)
     val probe1 = input[idx1]
@@ -117,6 +256,7 @@ private fun findStoneLine(input: List<Line3D>): Pair<Line3D, List<IntersectionIn
     val v1 = probe1.v
     val p2 = probe2.p
     val v2 = probe2.v
+
     val max = input.size * 10 // this is arbitrary, we do not know the correct max
 
     var maxIntersections = Integer.MIN_VALUE
