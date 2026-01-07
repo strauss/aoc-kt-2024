@@ -6,6 +6,56 @@ import com.google.ortools.sat.*
 fun main() {
     Loader.loadNativeLibraries()
 
+    example2()
+}
+
+private fun example2() {
+    val model = CpModel()
+    val x: IntVar = model.newIntVar(-100, 100, "x")
+    val y: IntVar = model.newIntVar(-100, 100, "y")
+    val z: IntVar = model.newIntVar(-100, 100, "z")
+
+    // 2x + 1y - 1z = 1
+    run {
+        val expr = LinearExpr.newBuilder()
+        expr.addTerm(x, 2)
+        expr.addTerm(y, 1)
+        expr.addTerm(z, -1)
+        model.addEquality(expr, 1)
+    }
+
+    // -x + 3y + 2z = 4
+    run {
+        val expr = LinearExpr.newBuilder()
+        expr.addTerm(x, -1)
+        expr.addTerm(y, 3)
+        expr.addTerm(z, 2)
+        model.addEquality(expr, 4)
+    }
+
+    // x + 2y + 3z = 7
+    run {
+        val expr = LinearExpr.newBuilder()
+        expr.addTerm(x, 1)
+        expr.addTerm(y, 2)
+        expr.addTerm(z, 3)
+        model.addEquality(expr, 7)
+    }
+
+    val solver = CpSolver()
+    val status = solver.solve(model)
+
+    when (status) {
+        CpSolverStatus.OPTIMAL, CpSolverStatus.FEASIBLE -> {
+            println("Status: $status")
+            println("(x,y,z) = (${solver.value(x)},${solver.value(y)},${solver.value(z)})")
+        }
+
+        else -> println("No integer solution found for status $status")
+    }
+}
+
+private fun example1() {
     // Zielvektor b
     val b = intArrayOf(3, 5, 4, 7)
 

@@ -312,7 +312,7 @@ private fun Vector.reduce(): Vector {
     }
 }
 
-private data class IntersectionInformation(
+internal data class IntersectionInformation(
 //    val line1: Line3D,
     val line2: Line3D,
     val distance: Double,
@@ -404,9 +404,9 @@ private fun analyzeInput(input: List<Line3D>) {
     println("MinZ: ${minZ.toLong()}")
 }
 
-private data class Line2D(val x: Double, val y: Double, val vx: Double, val vy: Double)
+internal data class Line2D(val x: Double, val y: Double, val vx: Double, val vy: Double)
 
-private data class Line3D(val p: Vector, val v: Vector) {
+internal data class Line3D(val p: Vector, val v: Vector) {
     fun makeIt2D(): Line2D = Line2D(p.x, p.y, v.x, v.y)
 
     fun intersects(otherLine: Line3D): IntersectionInformation {

@@ -22,4 +22,5 @@ repositories {
 dependencies {
     implementation("de.dreamcube:hornet-queen:0.3.0")
     implementation("com.google.ortools:ortools-java:9.10.4067")
+    implementation("org.apache.commons:commons-math3:3.6.1")
 }

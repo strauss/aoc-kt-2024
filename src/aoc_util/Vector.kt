@@ -30,7 +30,7 @@ data class DiscreteVector(val x: BigInteger, val y: BigInteger, val z: BigIntege
         val ZERO = DiscreteVector(BigInteger.ZERO, BigInteger.ZERO, BigInteger.ZERO)
     }
 
-    operator fun plus(v: DiscreteVector): DiscreteVector = DiscreteVector(x + v.x, y + v.y, z + v.y)
+    operator fun plus(v: DiscreteVector): DiscreteVector = DiscreteVector(x + v.x, y + v.y, z + v.z)
     operator fun minus(v: DiscreteVector): DiscreteVector = DiscreteVector(x - v.x, y - v.y, z - v.z)
     operator fun unaryMinus(): DiscreteVector = DiscreteVector(-x, -y, -z)
     operator fun times(v: DiscreteVector): BigInteger = x * v.x + y * v.y + z * v.z
@@ -44,4 +44,6 @@ data class DiscreteVector(val x: BigInteger, val y: BigInteger, val z: BigIntege
             v.x * w.y - v.y * w.x
         )
     }
+
+    fun asVector() = this * 1.0
 }
