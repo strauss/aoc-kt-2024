@@ -159,7 +159,7 @@ private fun findStoneLine(input: List<Line3D>): Pair<Line3D, List<IntersectionIn
     return null
 }
 
-private fun DiscreteVector.reduce(): DiscreteVector {
+fun DiscreteVector.reduce(): DiscreteVector {
     val (x, y, z) = this
     var gcd = gcd(x.abs(), y.abs())
     gcd = gcd(gcd, z.abs())

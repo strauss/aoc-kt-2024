@@ -10,11 +10,145 @@ import kotlin.math.sqrt
 fun main() {
 //    firstExample()
 //    secondExample()
-    thirdExample()
-
+//    thirdExample()
+    fourthExample()
     // next
 
 
+}
+
+private fun BigInteger.lcm(other: BigInteger): BigInteger =
+    if (this == BigInteger.ZERO || other == BigInteger.ZERO) BigInteger.ZERO
+    else this.divide(this.gcd(other)).multiply(other).abs()
+
+private fun gcdAll(xs: List<BigInteger>): BigInteger =
+    xs.map { it.abs() }.fold(BigInteger.ZERO) { g, x -> if (g == BigInteger.ZERO) x else g.gcd(x) }
+
+class RrefResult(
+    val rref: Array<Array<BigFraction>>,
+    val pivotCols: IntArray
+)
+
+/**
+ * Gauss-Jordan RREF für BigFraction, gibt RREF + Pivotspalten zurück
+ */
+fun rrefBigFraction(aIn: Array<Array<BigFraction>>): RrefResult {
+    val m = aIn.size
+    val n = aIn[0].size
+    val a = Array(m) { r -> Array(n) { c -> aIn[r][c] } }
+
+    val pivots = mutableListOf<Int>()
+    var row = 0
+    for (col in 0 until n) {
+        if (row >= m) break
+
+        // Pivot suchen
+        var pivotRow = -1
+        for (r in row until m) {
+            if (a[r][col] != BigFraction.ZERO) {
+                pivotRow = r
+                break
+            }
+        }
+        if (pivotRow == -1) continue
+
+        // Zeilen tauschen
+        if (pivotRow != row) {
+            val tmp = a[pivotRow]
+            a[pivotRow] = a[row]
+            a[row] = tmp
+        }
+
+        // Pivot auf 1 normieren
+        val pivot = a[row][col]
+        for (c in col until n) {
+            a[row][c] = a[row][c].divide(pivot)
+        }
+
+        // Spalte eliminieren (alle anderen Zeilen)
+        for (r in 0 until m) {
+            if (r == row) {
+                continue
+            }
+            val factor = a[r][col]
+            if (factor != BigFraction.ZERO) {
+                for (c in col until n) {
+                    a[r][c] = a[r][c].subtract(factor.multiply(a[row][c]))
+                }
+            }
+        }
+
+        pivots += col
+        row++
+    }
+
+    return RrefResult(a, pivots.toIntArray())
+}
+
+/**
+ * Liefert primitive Integer-Vektoren für den Nullraum (Ax=0), falls deine Matrix ganzzahlig ist.
+ * (Wenn der Nullraum eindimensional ist, bekommst du genau einen Vektor.)
+ */
+fun integerNullspaceBasisFromIntMatrix(a: Array<Array<BigInteger>>): List<Array<BigInteger>> {
+    val height = a.size
+    val width = a[0].size
+
+    // exakt nach BigFraction
+    val bf = Array(height) { row ->
+        Array(width) { col -> BigFraction(a[row][col]) }
+    }
+
+    val result = rrefBigFraction(bf)
+    val rref = result.rref
+    val pivotCols = result.pivotCols
+    val pivotSet = pivotCols.toSet()
+    val freeCols = (0 until width).filter { it !in pivotSet }
+
+    if (freeCols.isEmpty()) return emptyList() // nur triviale Lösung
+
+    // Für jede freie Variable ein Basisvektor
+    val basis = mutableListOf<Array<BigInteger>>()
+    for (free in freeCols) {
+        // x_free = 1, andere freie = 0
+        val xFrac = Array(width) { BigFraction.ZERO }
+        xFrac[free] = BigFraction.ONE
+
+        // Pivotvariablen aus den RREF-Zeilen: x_pivot = - sum_{free} rref[row][free] * x_free
+        for (i in pivotCols.indices) {
+            val pCol = pivotCols[i]
+            val coeff = rref[i][free] // weil nur diese freie Variable =1 ist
+            xFrac[pCol] = coeff.negate()
+        }
+
+        // Auf Integer skalieren: kgV aller Nenner
+        var lcmDen = BigInteger.ONE
+        for (f in xFrac) lcmDen =
+            lcmDen.lcm(f.denominator)  // BigFraction.getDenominator() :contentReference[oaicite:1]{index=1}
+
+        val ints = xFrac.map { f ->
+            f.numerator.multiply(lcmDen.divide(f.denominator)) // BigFraction.getNumerator()/getDenominator :contentReference[oaicite:2]{index=2}
+        }
+
+        // primitive Form: durch gcd teilen, Vorzeichen fixieren
+        val g = gcdAll(ints)
+        val reduced = ints.map { it.divide(g) }.toMutableList()
+        val firstNonZero = reduced.firstOrNull { it != BigInteger.ZERO }
+        if (firstNonZero != null && firstNonZero < BigInteger.ZERO) {
+            for (k in reduced.indices) reduced[k] = reduced[k].negate()
+        }
+
+        basis += reduced.toTypedArray()
+    }
+
+    return basis
+}
+
+private fun fourthExample() {
+    val row1 = listOf(BigFraction(4), BigFraction(3), BigFraction(-1), BigFraction(2)).toTypedArray()
+    val row2 = listOf(BigFraction(-3), BigFraction(-4), BigFraction(5), BigFraction(-5)).toTypedArray()
+    val row3 = listOf(BigFraction(-2), BigFraction(2), BigFraction(1), BigFraction(6)).toTypedArray()
+    val input = listOf(row1, row2, row3).toTypedArray()
+    val result = rrefBigFraction(input)
 }
 
 private fun thirdExample() {

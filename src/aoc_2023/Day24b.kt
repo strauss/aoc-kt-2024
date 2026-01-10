@@ -3,6 +3,7 @@ package aoc_2023
 import aoc_util.*
 import com.google.ortools.Loader
 import com.google.ortools.sat.*
+import org.apache.commons.math3.fraction.BigFraction
 import org.apache.commons.math3.linear.MatrixUtils
 import java.math.BigInteger
 import kotlin.math.sqrt
@@ -14,10 +15,87 @@ import kotlin.math.sqrt
 fun main() {
 //    trials()
 
-    val testLines = readInput2023("Day24")
-    val testInput = parseInput(testLines)
-    findStoneLine(testInput)
+    val lines = readInput2023("Day24")
+    val input = parseInput(lines)
+//    findStoneLine(input)
+    lastApproach(input)
+}
 
+private fun lastApproach(input: List<DiscreteLine3D>) {
+    val line0 = input[1]
+    val line1 = input[196]
+    val line2 = input[201]
+
+    val deltaV01 = line1.v - line0.v
+    val deltaP01 = line1.p - line0.p
+    val c01 = line0.p.cross(line0.v) - line1.p.cross(line1.v)
+
+    val deltaV02 = line2.v - line0.v
+    val deltaP02 = line2.p - line0.p
+    val c02 = line0.p.cross(line0.v) - line2.p.cross(line2.v)
+
+    // rows are ordered px, py, pz, vx, vy, vz
+    val row1 = listOf<BigInteger>(
+        BigInteger.ZERO, //px
+        deltaV01.z, //py
+        -deltaV01.y, //pz
+        BigInteger.ZERO, //vx
+        -deltaP01.z, //vy
+        deltaP01.y, //vz
+        -c01.x
+    ).map { BigFraction(it) }.toTypedArray()
+    val row2 = listOf<BigInteger>(
+        -deltaV01.z, // px
+        BigInteger.ZERO, // py
+        deltaV01.x, // pz
+        deltaP01.z, // vx
+        BigInteger.ZERO, // vy
+        -deltaP01.x, // vz
+        -c01.y
+    ).map { BigFraction(it) }.toTypedArray()
+    val row3 = listOf<BigInteger>(
+        deltaV01.y, // px
+        -deltaV01.x, // py
+        BigInteger.ZERO, // pz
+        -deltaP01.y, // vx
+        deltaP01.x, // vy
+        BigInteger.ZERO, // vz
+        -c01.z
+    ).map { BigFraction(it) }.toTypedArray()
+    val row4 = listOf<BigInteger>(
+        BigInteger.ZERO, //px
+        deltaV02.z, //py
+        -deltaV02.y, //pz
+        BigInteger.ZERO, //vx
+        -deltaP02.z, //vy
+        deltaP02.y, //vz
+        -c02.x
+    ).map { BigFraction(it) }.toTypedArray()
+    val row5 = listOf<BigInteger>(
+        -deltaV02.z, // px
+        BigInteger.ZERO, // py
+        deltaV02.x, // pz
+        deltaP02.z, // vx
+        BigInteger.ZERO, // vy
+        -deltaP02.x, // vz
+        -c02.y
+    ).map { BigFraction(it) }.toTypedArray()
+    val row6 = listOf<BigInteger>(
+        deltaV02.y, // px
+        -deltaV02.x, // py
+        BigInteger.ZERO, // pz
+        -deltaP02.y, // vx
+        deltaP02.x, // vy
+        BigInteger.ZERO, // vz
+        -c02.z
+    ).map { BigFraction(it) }.toTypedArray()
+
+    val matrix = listOf(row1, row2, row3, row4, row5, row6).toTypedArray()
+    val result = rrefBigFraction(matrix)
+    val vx = result.rref[0][6].numerator
+    val vy = result.rref[1][6].numerator
+    val vz = result.rref[2][6].numerator
+    println(vx + vy + vz)
 }
 
 private fun trials() {
@@ -45,46 +123,145 @@ private fun trials() {
 private fun findStoneLine(input: List<DiscreteLine3D>): Pair<DiscreteLine3D, List<IntersectionInformation>>? {
     Loader.loadNativeLibraries()
 
-    val (d, m) = getLineWithApacheMath(input)
-//    val (d, m) = getLineWithOrTools(input)
+    val (dv, mv) = getLineWithDiscreteApproach(input)
+//    val (dv, mv) = getLineWithApacheMath(input)
+//    val (dv, mv) = getLineWithOrTools(input)
 
-    val s = d * d
-    val u = d.cross(m)
+    val s = (dv * dv)
+    val uv = dv.cross(mv)
 
-//    val result = Vector(
-//        u.x.toDouble() / s.toDouble(),
-//        u.y.toDouble() / s.toDouble(),
-//        u.z.toDouble() / s.toDouble()
-//    )
-//
-//    println(result)
+    val basePoint = Vector(
+        uv.x.toDouble() / s.toDouble(),
+        uv.y.toDouble() / s.toDouble(),
+        uv.z.toDouble() / s.toDouble()
+    )
 
+    val stoneLine = Line3D(basePoint, dv.asVector())
+
+
+    println(basePoint)
+
+    val intersectionInformation = analyzeIntersections(input, stoneLine)
+
+//    analyzeGcd(dv, s, uv)
+
+//    analyzeIntersections(input, dv, mv)
+
+    val discreteBasePoint = getBasePointDirectly(dv, uv)
+
+    println("Velocity: $dv")
+    println("Point: $discreteBasePoint")
+
+
+//    p = (u + kd) / s
+
+
+    return null
+}
+
+private fun analyzeIntersections(
+    input: List<DiscreteLine3D>,
+    dv: DiscreteVector,
+    mv: DiscreteVector
+) {
+    val intersects: MutableSet<DiscreteLine3D> = HashSet()
+    val doesNotIntersect: MutableSet<DiscreteLine3D> = HashSet()
+
+    for (line in input) {
+        if (line.intersects(dv, mv)) {
+            intersects.add(line)
+        } else {
+            doesNotIntersect.add(line)
+        }
+    }
+}
+
+private fun analyzeIntersections(input: List<DiscreteLine3D>, stoneLine: Line3D): List<IntersectionInformation> {
+    val intersectionInformation: MutableList<IntersectionInformation> = ArrayList()
+
+    for (line in input) {
+        val currentResult = stoneLine.intersects(line.asLine3D())
+        intersectionInformation.add(currentResult)
+    }
+
+    return intersectionInformation
+}
+
+private fun analyzeGcd(dv: DiscreteVector, s: BigInteger, uv: DiscreteVector) {
+    val xxx = gcd(dv.x.abs(), s)
+    val yyy = gcd(dv.y.abs(), s)
+    val zzz = gcd(dv.z.abs(), s)
+
+    val dxx = uv.x.abs() % xxx
+    val dyy = uv.y.abs() % yyy
+    val dzz = uv.z.abs() % zzz
+}
+
+private fun getBasePointDirectly(dv: DiscreteVector, uv: DiscreteVector): DiscreteVector {
+    val s = (dv * dv).toLong()
+    var result = -1L
+    for (current in 0..s) {
+        val res1 = Math.floorMod(uv.x.toLong() + current * dv.x.toLong(), s)
+        if (res1 != 0L) {
+            continue
+        }
+        val res2 = Math.floorMod(uv.y.toLong() + current * dv.y.toLong(), s)
+        if (res2 != 0L) {
+            continue
+        }
+        val res3 = Math.floorMod(uv.z.toLong() + current * dv.z.toLong(), s)
+        if (res3 != 0L) {
+            continue
+        }
+        result = current
+        break
+    }
+
+    if (result > 0) {
+        val p = (uv + (dv * result.toBigInteger()))
+        val kResult = DiscreteVector(p.x / s.toBigInteger(), p.y / s.toBigInteger(), p.z / s.toBigInteger())
+        return kResult
+    }
+    return DiscreteVector.ZERO
+}
+
+private fun getBasePointWithORTools(
+    dv: DiscreteVector,
+    uv: DiscreteVector
+): DiscreteVector {
+    val s = (dv * dv).toLong()
+    val a = Math.floorMod(dv.x.toLong(), s)
+    val b = Math.floorMod(uv.x.toLong(), s)
+    val c = Math.floorMod(dv.y.toLong(), s)
+    val d = Math.floorMod(uv.y.toLong(), s)
+    val e = Math.floorMod(dv.z.toLong(), s)
+    val f = Math.floorMod(uv.z.toLong(), s)
 
     val kModel = CpModel()
     val x = kModel.newIntVar(0.toLong(), s.toLong() - 1L, "x")
-    val k1 = kModel.newIntVar(0, Int.MAX_VALUE.toLong(), "k1")
-    val k2 = kModel.newIntVar(0, Int.MAX_VALUE.toLong(), "k2")
-    val k3 = kModel.newIntVar(0, Int.MAX_VALUE.toLong(), "k3")
+    val k1 = kModel.newIntVar(0, Integer.MAX_VALUE.toLong(), "k1")
+    val k2 = kModel.newIntVar(0, Integer.MAX_VALUE.toLong(), "k2")
+    val k3 = kModel.newIntVar(0, Integer.MAX_VALUE.toLong(), "k3")
 
     run {
         val expr = LinearExpr.newBuilder()
-        expr.addTerm(x, d.x.toLong())
+        expr.addTerm(x, a)
         expr.addTerm(k1, -(s.toLong()))
-        kModel.addEquality(expr, -(u.x.toLong()))
+        kModel.addEquality(expr, -b)
     }
 
     run {
         val expr = LinearExpr.newBuilder()
-        expr.addTerm(x, d.y.toLong())
+        expr.addTerm(x, c)
         expr.addTerm(k2, -(s.toLong()))
-        kModel.addEquality(expr, -(u.y.toLong()))
+        kModel.addEquality(expr, -d)
     }
 
     run {
         val expr = LinearExpr.newBuilder()
-        expr.addTerm(x, d.z.toLong())
+        expr.addTerm(x, e)
         expr.addTerm(k3, -(s.toLong()))
-        kModel.addEquality(expr, -(u.z.toLong()))
+        kModel.addEquality(expr, -f)
     }
 
     val kSolver = CpSolver()
@@ -92,17 +269,40 @@ private fun findStoneLine(input: List<DiscreteLine3D>): Pair<DiscreteLine3D, Lis
 
     val k = kSolver.value(x)
 
-    val p = (u + (d * k.toBigInteger()))
-    val kResult = DiscreteVector(p.x / s, p.y / s, p.z / s)
+    val p = (uv + (dv * k.toBigInteger()))
+    val kResult = DiscreteVector(p.x / s.toBigInteger(), p.y / s.toBigInteger(), p.z / s.toBigInteger())
+    return kResult
+}
 
-    println("Velocity: $d")
-    println("Point: $kResult")
+private fun getLineWithDiscreteApproach(input: List<DiscreteLine3D>): Pair<DiscreteVector, DiscreteVector> {
+    val inputAsCoefficients: Array<Array<BigInteger>> = input.asSequence().map { line: DiscreteLine3D ->
+        Array(6) { idx: Int ->
+            when (idx) {
+                0 -> line.d.x
+                1 -> line.d.y
+                2 -> line.d.z
+                3 -> line.m.x
+                4 -> line.m.y
+                5 -> line.m.z
+                else -> throw IllegalStateException()
+            }
+        }
+    }.toList().toTypedArray()
 
+    val base = integerNullspaceBasisFromIntMatrix(inputAsCoefficients)
 
-//    p = (u + kd) / s
+    for (i in base.indices) {
+        val candidateSolution = base[i]
 
+        val d = DiscreteVector(candidateSolution[3], candidateSolution[4], candidateSolution[5])
+        val m = DiscreteVector(candidateSolution[0], candidateSolution[1], candidateSolution[2])
 
-    return null
+        val test = d * m
+        if (test == BigInteger.ZERO) {
+            return d to m
+        }
+    }
+    return DiscreteVector.ZERO to DiscreteVector.ZERO
 }
 
 private fun getLineWithApacheMath(input: List<DiscreteLine3D>): Pair<DiscreteVector, DiscreteVector> {
@@ -207,6 +407,8 @@ private data class DiscreteLine3D(val p: DiscreteVector, val v: DiscreteVector) 
     val m = p.cross(v)
 
     infix fun intersects(otherLine: DiscreteLine3D): Boolean = d * otherLine.m + otherLine.d * m == BigInteger.ZERO
+
+    fun intersects(otherD: DiscreteVector, otherM: DiscreteVector) = d * otherM + otherD * m == BigInteger.ZERO
 
     infix fun parallelTo(otherLine: DiscreteLine3D): Boolean = d.cross(otherLine.d) == DiscreteVector.ZERO
 

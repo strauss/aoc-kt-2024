@@ -383,7 +383,7 @@ private fun parseInput(lines: List<String>, offset: Boolean = true): List<Line3D
         result.add(line3D)
     }
 
-//    analyzeInput(result)
+    analyzeInput(result)
 
     return result
 }
@@ -393,15 +393,26 @@ private fun analyzeInput(input: List<Line3D>) {
     var minY = Double.POSITIVE_INFINITY
     var minZ = Double.POSITIVE_INFINITY
 
+    var maxX = Double.NEGATIVE_INFINITY
+    var maxY = Double.NEGATIVE_INFINITY
+    var maxZ = Double.NEGATIVE_INFINITY
+
     for (line in input) {
         minX = minX.coerceAtMost(line.p.x)
         minY = minY.coerceAtMost(line.p.y)
         minZ = minZ.coerceAtMost(line.p.z)
+        maxX = maxX.coerceAtLeast(line.p.x)
+        maxY = maxY.coerceAtLeast(line.p.y)
+        maxZ = maxZ.coerceAtLeast(line.p.z)
     }
 
     println("MinX: ${minX.toLong()}")
     println("MinY: ${minY.toLong()}")
     println("MinZ: ${minZ.toLong()}")
+
+    println("MaxX: ${maxX.toLong()}")
+    println("MaxY: ${maxY.toLong()}")
+    println("MaxZ: ${maxZ.toLong()}")
 }
 
 internal data class Line2D(val x: Double, val y: Double, val vx: Double, val vy: Double)
