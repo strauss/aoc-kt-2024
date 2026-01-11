@@ -332,6 +332,8 @@ data class Coordinate(val row: Int, val col: Int) {
     }
 
     override fun toString(): String = "($row, $col)"
+
+    fun getNeighbors(): Set<Coordinate> = setOf(getNorth(), getEast(), getSouth(), getWest())
 }
 
 enum class Movement(val deltaRow: Int, val deltaCol: Int) {
